@@ -23,12 +23,6 @@ OSC Corporation is built using Laravel and Livewire, creating a powerful and int
 -   **Database**: MySQL
 -   **Testing**: Pest PHP
 
-## License
-
-MIT License
-
-## Contact
-
 <br>
 
 **CRAFTED WITH LOVE 💖**
