@@ -120,18 +120,18 @@ new class extends Component {
         <div class=" overflow-hidden shadow-xl sm:rounded-lg p-6">
             <!-- Stats overview -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                <div class="bg-green-500 p-4 rounded-lg">
-                    <h3 class="font-semibold text-green-200">Total Funds</h3>
+                <x-glass-card colorScheme="emerald">
+                    <h3 class="font-semibold">Total Funds</h3>
                     <p class="text-2xl font-bold">PKR {{ number_format($totalFunds, 2) }}</p>
-                </div>
-                <div class="bg-blue-500 p-4 rounded-lg">
-                    <h3 class="font-semibold text-blue-200">Total Loans</h3>
+                </x-glass-card>
+                <x-glass-card colorScheme="indigo">
+                    <h3 class="font-semibold">Total Loans</h3>
                     <p class="text-2xl font-bold">PKR {{ number_format($totalLoans, 2) }}</p>
-                </div>
-                <div class="bg-purple-500 p-4 rounded-lg">
-                    <h3 class="font-semibold text-purple-200">Total Returns</h3>
+                </x-glass-card>
+                <x-glass-card colorScheme="purple">
+                    <h3 class="font-semibold">Total Returns</h3>
                     <p class="text-2xl font-bold">PKR {{ number_format($totalReturns, 2) }}</p>
-                </div>
+                </x-glass-card>
             </div>
 
             <!-- Transaction Form -->
@@ -146,14 +146,16 @@ new class extends Component {
                                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
                                 <flux:select.option value="">Select organization</flux:select.option>
                                 @foreach ($organizations as $organization)
-                                    <flux:select.option value="{{ $organization->id }}">{{ $organization->name }}
-                                    </flux:select.option>
+                                <flux:select.option value="{{ $organization->id }}">{{ $organization->name }}
+                                </flux:select.option>
                                 @endforeach
                             </flux:select>
                             @error('from_organization_id')
-                                <span class="text-red-500 text-xs">{{ $message }}</span>
+                            <span class="text-red-500 text-xs">{{ $message }}</span>
                             @enderror
                         </div>
+
+                        {{--  --}}
 
                         <div>
                             <label for="to_organization_id" class="block text-sm font-medium text-gray-700">To
@@ -162,12 +164,12 @@ new class extends Component {
                                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
                                 <flux:select.option value="">Select organization</flux:select.option>
                                 @foreach ($organizations as $organization)
-                                    <flux:select.option value="{{ $organization->id }}">{{ $organization->name }}
-                                    </flux:select.option>
+                                <flux:select.option value="{{ $organization->id }}">{{ $organization->name }}
+                                </flux:select.option>
                                 @endforeach
                             </flux:select>
                             @error('to_organization_id')
-                                <span class="text-red-500 text-xs">{{ $message }}</span>
+                            <span class="text-red-500 text-xs">{{ $message }}</span>
                             @enderror
                         </div>
 
@@ -180,7 +182,7 @@ new class extends Component {
                                 </flux:input>
                             </div>
                             @error('amount')
-                                <span class="text-red-500 text-xs">{{ $message }}</span>
+                            <span class="text-red-500 text-xs">{{ $message }}</span>
                             @enderror
                         </div>
 
@@ -194,17 +196,17 @@ new class extends Component {
                                 <flux:select.option value="return">Return</flux:select.option>
                             </flux:select>
                             @error('transaction_type')
-                                <span class="text-red-500 text-xs">{{ $message }}</span>
+                            <span class="text-red-500 text-xs">{{ $message }}</span>
                             @enderror
                         </div>
                     </div>
 
                     <div class="mt-4 flex justify-end">
                         @if ($isEditing)
-                            <flux:button type="button" wire:click="cancelEdit"
-                                class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700  hover:bg-gray-50 mr-2">
-                                Cancel
-                            </flux:button>
+                        <flux:button type="button" wire:click="cancelEdit"
+                            class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700  hover:bg-gray-50 mr-2">
+                            Cancel
+                        </flux:button>
                         @endif
                         <flux:button type="submit"
                             class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
@@ -261,46 +263,45 @@ new class extends Component {
                         </thead>
                         <tbody class=" divide-y divide-gray-200">
                             @forelse ($transactions as $transaction)
-                                <tr>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm ">
-                                        {{ $transaction->transaction_date->format('M d, Y H:i') }}
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm ">
-                                        {{ $transaction->fromOrganization->name }}
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm ">
-                                        {{ $transaction->toOrganization->name }}
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm ">
-                                        PKR {{ number_format($transaction->amount, 2) }}
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <span
-                                            class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm ">
+                                    {{ $transaction->transaction_date->format('M d, Y H:i') }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm ">
+                                    {{ $transaction->fromOrganization->name }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm ">
+                                    {{ $transaction->toOrganization->name }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm ">
+                                    PKR {{ number_format($transaction->amount, 2) }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full
                                             @if ($transaction->transaction_type === 'fund') bg-green-700 text-green-800
                                             @elseif($transaction->transaction_type === 'loan') bg-blue-700 text-white
                                             @else bg-purple-500 text-white @endif">
-                                            {{ ucfirst($transaction->transaction_type) }}
-                                        </span>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                        <flux:button wire:click="editTransaction({{ $transaction->id }})"
-                                            class="text-indigo-600 hover:text-indigo-900 mr-3">
-                                            Edit
-                                        </flux:button>
-                                        <flux:button wire:click="deleteTransaction({{ $transaction->id }})"
-                                            wire:confirm="Are you sure you want to delete this transaction?"
-                                            class="text-red-600 hover:text-red-900">
-                                            Delete
-                                        </flux:button>
-                                    </td>
-                                </tr>
+                                        {{ ucfirst($transaction->transaction_type) }}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                    <flux:button wire:click="editTransaction({{ $transaction->id }})"
+                                        class="text-indigo-600 hover:text-indigo-900 mr-3">
+                                        Edit
+                                    </flux:button>
+                                    <flux:button wire:click="deleteTransaction({{ $transaction->id }})"
+                                        wire:confirm="Are you sure you want to delete this transaction?"
+                                        class="text-red-600 hover:text-red-900">
+                                        Delete
+                                    </flux:button>
+                                </td>
+                            </tr>
                             @empty
-                                <tr>
-                                    <td colspan="6" class="px-6 py-4 whitespace-nowrap text-sm  text-center">
-                                        No transactions found.
-                                    </td>
-                                </tr>
+                            <tr>
+                                <td colspan="6" class="px-6 py-4 whitespace-nowrap text-sm  text-center">
+                                    No transactions found.
+                                </td>
+                            </tr>
                             @endforelse
                         </tbody>
                     </table>
