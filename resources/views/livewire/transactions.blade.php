@@ -3,6 +3,7 @@
 use Livewire\Volt\Component;
 use Livewire\WithPagination;
 use App\Models\Organization;
+use App\Models\OpeningBalance;
 use App\Models\Transaction;
 use Illuminate\Support\Facades\DB;
 
@@ -17,6 +18,7 @@ new class extends Component {
     public $isEditing = false;
     public $searchQuery = '';
     public $filterType = '';
+    public $showLedger = false;
 
     public function rules()
     {
@@ -89,6 +91,84 @@ new class extends Component {
         $this->modal('transaction-form')->close();
     }
 
+    // fetch specific organization sum (load, return, fund)
+    public function getOrganizationSum($organizationId, $type)
+    {
+        return Transaction::where('from_organization_id', $organizationId)
+            ->where('transaction_type', $type)
+            ->sum('amount');
+    }
+
+    public function toggleLedger()
+    {
+        $this->showLedger = !$this->showLedger;
+    }
+
+    public function getLedgerData()
+    {
+        $organizations = Organization::all();
+        $ledgerData = [];
+
+        foreach ($organizations as $organization) {
+            // Get opening balance for the organization
+            $openingBalance = OpeningBalance::where('organization_id', $organization->id)->first();
+            $opening = [
+                'amount' => $openingBalance ? $openingBalance->amount : 0,
+                'type' => $openingBalance ? $openingBalance->type : null, // 'credit' or 'debit'
+            ];
+
+            $sent = [
+                'fund' => Transaction::where('from_organization_id', $organization->id)
+                    ->where('transaction_type', 'fund')
+                    ->sum('amount'),
+                'loan' => Transaction::where('from_organization_id', $organization->id)
+                    ->where('transaction_type', 'loan')
+                    ->sum('amount'),
+                'return' => Transaction::where('from_organization_id', $organization->id)
+                    ->where('transaction_type', 'return')
+                    ->sum('amount'),
+                'total' => Transaction::where('from_organization_id', $organization->id)
+                    ->sum('amount'),
+            ];
+
+            $received = [
+                'fund' => Transaction::where('to_organization_id', $organization->id)
+                    ->where('transaction_type', 'fund')
+                    ->sum('amount'),
+                'loan' => Transaction::where('to_organization_id', $organization->id)
+                    ->where('transaction_type', 'loan')
+                    ->sum('amount'),
+                'return' => Transaction::where('to_organization_id', $organization->id)
+                    ->where('transaction_type', 'return')
+                    ->sum('amount'),
+                'total' => Transaction::where('to_organization_id', $organization->id)
+                    ->sum('amount'),
+            ];
+
+            // Calculate balance including opening balance
+            $transactionBalance = $received['total'] - $sent['total'];
+            $finalBalance = $transactionBalance;
+
+            // Adjust balance based on opening balance type
+            if ($opening['type'] === 'credit') {
+                $finalBalance += $opening['amount'];
+            } elseif ($opening['type'] === 'debit') {
+                $finalBalance -= $opening['amount'];
+            }
+
+            $ledgerData[$organization->id] = [
+                'organization' => $organization,
+                'opening' => $opening,
+                'sent' => $sent,
+                'received' => $received,
+                'transaction_balance' => $transactionBalance,
+                'balance' => $finalBalance
+            ];
+        }
+
+        return $ledgerData;
+    }
+
     public function with(): array
     {
         $query = Transaction::query()
@@ -115,6 +195,7 @@ new class extends Component {
             'totalFunds' => Transaction::where('transaction_type', 'fund')->sum('amount'),
             'totalLoans' => Transaction::where('transaction_type', 'loan')->sum('amount'),
             'totalReturns' => Transaction::where('transaction_type', 'return')->sum('amount'),
+            'ledgerData' => $this->getLedgerData(),
         ];
     }
 }; ?>
@@ -145,7 +226,8 @@ new class extends Component {
             </div>
         </div>
         <!-- Stats overview -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+
+        {{-- <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <x-glass-card colorScheme="emerald" class="backdrop-blur-sm">
                 <div class="flex items-center justify-between">
                     <div>
@@ -171,7 +253,7 @@ new class extends Component {
             <x-glass-card colorScheme="purple" class="backdrop-blur-sm">
                 <div class="flex items-center justify-between">
                     <div>
-                        <h3 class="font-semibold text-purple-100">Total Returns</h3>
+                        <h3 class="font-semibold ">Total Returns</h3>
                         <p class="text-2xl font-bold mt-1">PKR {{ number_format($totalReturns, 2) }}</p>
                     </div>
                     <div class="bg-purple-500/20 p-3 rounded-full">
@@ -179,7 +261,7 @@ new class extends Component {
                     </div>
                 </div>
             </x-glass-card>
-        </div>
+        </div> --}}
 
         <!-- Transaction Form -->
         <flux:modal name="transaction-form" class="w-full max-w-4xl">
@@ -419,6 +501,197 @@ new class extends Component {
                 {{ $transactions->links() }}
             </div>
         </x-glass-card>
+
+        <!-- Organization Ledger -->
+        <div class="mt-8 flex justify-between items-center">
+            <h2 class="text-xl font-bold text-slate-800 dark:text-slate-100 flex items-center">
+                <flux:icon name="clipboard-document-list" class="h-6 w-6 mr-2" />
+                Organization Ledger
+            </h2>
+            <div class="flex items-center space-x-2">
+                <a href="{{ route('accounts.transactions.print-ledger') }}" target="_blank">
+                    <flux:button variant="primary" class="flex items-center">
+                        <flux:icon name="document-arrow-down" class="h-4 w-4 mr-2" />
+                        <span>Print PDF</span>
+                    </flux:button>
+                </a>
+                <flux:button wire:click="toggleLedger" variant="{{ $showLedger ? 'danger' : 'primary' }}"
+                    class="flex items-center">
+                    <span>{{ $showLedger ? 'Hide Ledger' : 'Show Ledger' }}</span>
+                </flux:button>
+            </div>
+        </div>
+
+        @if ($showLedger)
+        <x-glass-card colorScheme="amber" class="mt-4">
+            <div class="overflow-x-auto rounded-lg">
+                <table class="min-w-full divide-y divide-purple-200/20">
+                    <thead class="bg-gradient-to-r backdrop-blur-sm">
+                        <tr>
+                            <th scope="col" class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">
+                                Organization
+                            </th>
+                            <th scope="col"
+                                class="px-6 py-4 text-center text-xs font-semibold uppercase tracking-wider">
+                                Type
+                            </th>
+                            <th scope="col"
+                                class="px-6 py-4 text-center text-xs font-semibold uppercase tracking-wider">
+                                Debit (Sent)
+                            </th>
+                            <th scope="col"
+                                class="px-6 py-4 text-center text-xs font-semibold uppercase tracking-wider">
+                                Credit (Received)
+                            </th>
+                            <th scope="col"
+                                class="px-6 py-4 text-center text-xs font-semibold uppercase tracking-wider">
+                                Balance
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody class="backdrop-blur-sm divide-y divide-purple-200/10">
+                        @forelse ($ledgerData as $data)
+                        <!-- Fund row -->
+                        <tr class="hover:bg-zinc-900/20 transition-colors duration-200">
+                            <td class="px-6 py-4 text-sm font-medium" rowspan="3">
+                                {{ $data['organization']->name }}
+
+                                {{-- show organization opening balance also --}}
+                                @if ($data['opening']['amount'] > 0)
+                                <div class="text-xs text-slate-400">
+                                    Opening Balance: <br>
+                                    <flux:badge color="green" size="sm">PKR {{ number_format($data['opening']['amount'],
+                                        2) }}</flux:badge>
+                                    ( {{ $data['opening']['type']==='credit' ? 'Credit' : 'Debit' }})
+                                </div>
+                                @endif
+                            </td>
+                            <td class="px-6 py-3 text-sm text-center">
+                                <span
+                                    class="px-3 py-1 text-xs leading-5 font-semibold rounded-full bg-emerald-500/20 text-emerald-200">
+                                    <flux:icon name="banknotes" class="inline-block h-3 w-3 mr-1" />
+                                    Fund
+                                </span>
+                            </td>
+                            <td class="px-6 py-3 text-sm text-center">
+                                <span class="font-semibold text-emerald-300">
+                                    PKR {{ number_format($data['sent']['fund'], 2) }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-3 text-sm text-center">
+                                <span class="font-semibold text-emerald-300">
+                                    PKR {{ number_format($data['received']['fund'], 2) }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-3 text-sm text-center">
+                                <span
+                                    class="font-semibold {{ ($data['received']['fund'] - $data['sent']['fund']) >= 0 ? 'text-emerald-300' : 'text-red-400' }}">
+                                    PKR {{ number_format($data['received']['fund'] - $data['sent']['fund'], 2) }}
+                                </span>
+                            </td>
+                        </tr>
+
+                        <!-- Loan row -->
+                        <tr class="hover:bg-zinc-900/20 transition-colors duration-200">
+                            <td class="px-6 py-3 text-sm text-center">
+                                <span
+                                    class="px-3 py-1 text-xs leading-5 font-semibold rounded-full bg-amber-500/20 text-amber-200">
+                                    <flux:icon name="arrow-trending-up" class="inline-block h-3 w-3 mr-1" />
+                                    Loan
+                                </span>
+                            </td>
+                            <td class="px-6 py-3 text-sm text-center">
+                                <span class="font-semibold text-amber-300">
+                                    PKR {{ number_format($data['sent']['loan'], 2) }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-3 text-sm text-center">
+                                <span class="font-semibold text-amber-300">
+                                    PKR {{ number_format($data['received']['loan'], 2) }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-3 text-sm text-center">
+                                <span
+                                    class="font-semibold {{ ($data['received']['loan'] - $data['sent']['loan']) >= 0 ? 'text-emerald-300' : 'text-red-400' }}">
+                                    PKR {{ number_format($data['received']['loan'] - $data['sent']['loan'], 2) }}
+                                </span>
+                            </td>
+                        </tr>
+
+                        <!-- Return row -->
+                        <tr class="hover:bg-zinc-900/20 transition-colors duration-200 border-b border-grey-200/10">
+                            <td class="px-6 py-3 text-sm text-center">
+                                <span class="px-3 py-1 text-xs leading-5 font-semibold rounded-full bg-zinc-500/20">
+                                    <flux:icon name="arrow-path" class="inline-block h-3 w-3 mr-1" />
+                                    Return
+                                </span>
+                            </td>
+                            <td class="px-6 py-3 text-sm text-center">
+                                <span class="font-semibold text-purple-300">
+                                    PKR {{ number_format($data['sent']['return'], 2) }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-3 text-sm text-center">
+                                <span class="font-semibold text-purple-300">
+                                    PKR {{ number_format($data['received']['return'], 2) }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-3 text-sm text-center">
+                                <span
+                                    class="font-semibold {{ ($data['received']['return'] - $data['sent']['return']) >= 0 ? 'text-emerald-300' : 'text-red-400' }}">
+                                    PKR {{ number_format($data['received']['return'] - $data['sent']['return'], 2) }}
+                                </span>
+                            </td>
+                        </tr>
+                        <!-- Total row -->
+                        <tr class="bg-zinc-900 hover:bg-zinc-800 duration-200">
+                            <td class="px-6 py-3 text-sm font-bold">
+                                {{ $data['organization']->name }} Total
+                            </td>
+                            <td class="px-6 py-3 text-sm text-center font-bold">
+                                All Types
+                            </td>
+                            <td class="px-6 py-3 text-sm text-center font-bold">
+                                PKR {{ number_format($data['sent']['total'], 2) }}
+                            </td>
+                            <td class="px-6 py-3 text-sm text-center font-bold">
+                                PKR {{ number_format($data['received']['total'], 2) }}
+                            </td>
+                            <td class="px-6 py-3 text-sm text-center">
+                                <span
+                                    class="font-bold {{ $data['balance'] >= 0 ? 'text-emerald-300' : 'text-red-400' }}">
+                                    PKR {{ number_format($data['balance'], 2) }}
+                                </span>
+                            </td>
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="5" class="px-6 py-8 text-center text-slate-400">
+                                No organization data available
+                            </td>
+                        </tr>
+                        @endforelse
+                    </tbody>
+                    <tfoot class="bg-gradient-to-r from-zinc-900/50 to-zinc-800/40 backdrop-blur-sm">
+                        <tr>
+                            <th scope="row" class="px-6 py-3 text-left text-sm font-bold" colspan="2">
+                                Grand Total (All Organizations)
+                            </th>
+                            <td class="px-6 py-3 text-sm text-center font-bold">
+                                PKR {{ number_format($totalFunds + $totalLoans + $totalReturns, 2) }}
+                            </td>
+                            <td class="px-6 py-3 text-sm text-center font-bold">
+                                PKR {{ number_format($totalFunds + $totalLoans + $totalReturns, 2) }}
+                            </td>
+                            <td class="px-6 py-3 text-sm text-center font-bold">
+                                PKR 0.00
+                            </td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </x-glass-card>
+        @endif
 
     </div>
 </div>

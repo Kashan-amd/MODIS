@@ -432,7 +432,7 @@ new class extends Component {
                                             <label class="block text-sm font-medium">Total</label>
                                             <flux:input type="number" step="0.01" readonly
                                                 wire:model="items.{{ $index }}.total_amount"
-                                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-gray-700">
+                                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
                                             </flux:input>
                                             @error('items.'.$index.'.total_amount')
                                             <span class="text-red-500 text-xs">{{ $message }}</span>
@@ -539,18 +539,6 @@ new class extends Component {
                             <th scope="col"
                                 class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-indigo-100">
                                 <div class="flex items-center space-x-1">
-                                    Items
-                                </div>
-                            </th>
-                            <th scope="col"
-                                class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-indigo-100">
-                                <div class="flex items-center space-x-1">
-                                    <span>Total</span>
-                                </div>
-                            </th>
-                            <th scope="col"
-                                class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-indigo-100">
-                                <div class="flex items-center space-x-1">
                                     <span>Budget</span>
                                 </div>
                             </th>
@@ -568,7 +556,7 @@ new class extends Component {
                     </thead>
                     <tbody class="bg-indigo-900/10 backdrop-blur-sm divide-y divide-indigo-200/10">
                         @forelse ($jobBookings as $job)
-                        <tr class="hover:bg-indigo-900/20 transition-colors duration-200" x-data="{ items: false }">
+                        <tr class="hover:bg-indigo-900/20 transition-colors duration-200">
                             <td class="px-6 py-4 text-sm">
                                 <div class="font-medium text-indigo-100">{{ $job->job_number }}</div>
                                 <div class="text-xs text-indigo-300 mt-1">
@@ -586,82 +574,32 @@ new class extends Component {
                                 </div>
                             </td>
                             <td class="px-6 py-4 text-sm text-indigo-200">
-                                <flux:button variant="primary" size="xs" x-on:click="items = !items">
-                                    Items
-                                </flux:button>
-                                <div x-show="items" x-cloak class="space-y-2">
-                                    <table
-                                        class="mt-2 w-full divide-y bg-indigo-900/30 rounded-md divide-indigo-200/20">
-                                        <thead>
-                                            <tr>
-                                                <th
-                                                    class="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider text-indigo-100">
-                                                    Vendor</th>
-                                                <th
-                                                    class="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider text-indigo-100">
-                                                    Item</th>
-                                                <th
-                                                    class="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider text-indigo-100">
-                                                    Quantity</th>
-                                                <th
-                                                    class="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider text-indigo-100">
-                                                    Rate</th>
-                                                <th
-                                                    class="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider text-indigo-100">
-                                                    Total</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody class="divide-y divide-indigo-200/10">
-                                            @foreach($job->jobCostings as $costing)
-                                            <tr>
-                                                <td class="px-4 py-2 text-sm text-indigo-200">
-                                                    {{ $costing->vendor->name ?? '—' }}
-                                                </td>
-                                                <td class="px-4 py-2 text-sm text-indigo-200">
-                                                    {{ $costing->item->name ?? '—' }}
-                                                </td>
-                                                <td class="px-4 py-2 text-sm text-indigo-200">
-                                                    {{ $costing->quantity }}
-                                                </td>
-                                                <td class="px-4 py-2 text-sm text-indigo-200">
-                                                    PKR {{ number_format($costing->rate, 2) }}
-                                                </td>
-                                                <td class="px-4 py-2 text-sm text-indigo-200">
-                                                    PKR {{ number_format($costing->total_amount, 2) }}
-                                                </td>
-                                            </tr>
-                                            @endforeach
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </td>
-                            <td class="px-6 py-4 text-sm text-indigo-200">
-                                <div class="font-medium">
-                                    {{ number_format($job->jobCostings->sum('total_amount'), 2) }}
-                                </div>
-                            </td>
-                            <td class="px-6 py-4 text-sm text-indigo-200">
                                 @if($job->approved_budget)
-                                <div class="font-medium"> {{ number_format($job->approved_budget, 2) }}</div>
+                                <div class="font-medium">PKR {{ number_format($job->approved_budget, 2) }}</div>
                                 @else
                                 <span class="text-indigo-400 italic">Not set</span>
                                 @endif
                                 <div class="text-xs text-indigo-300 mt-1">
                                     @if($job->gst)
                                     <span
-                                        class="bg-emerald-900/30 text-emerald-300 px-2 py-0.5 rounded-full text-xs">GST</span>
+                                        class="bg-emerald-900/30 text-emerald-300 px-2 py-0.5 rounded-full text-xs">GST
+                                        Included</span>
                                     @endif
                                 </div>
                             </td>
                             <td class="px-6 py-4 text-sm">
                                 @if($job->status === 'open')
-                                <flux:badge color="green">
-                                    <flux:icon name="lock-open" class="h-4 w-4" />
-                                </flux:badge>
+                                <span
+                                    class="px-3 py-1 text-xs leading-5 font-semibold rounded-full bg-emerald-500/20 text-emerald-200">
+                                    <flux:icon name="lock-open" class="inline-block h-3 w-3 mr-1" />
+                                    Open
+                                </span>
                                 @else
-                                <flux:badge color="red">
-                                    <flux:icon name="lock-closed" class="h-4 w-4" />
-                                </flux:badge>
+                                <span
+                                    class="px-3 py-1 text-xs leading-5 font-semibold rounded-full bg-slate-500/20 text-slate-200">
+                                    <flux:icon name="lock-closed" class="inline-block h-3 w-3 mr-1" />
+                                    Closed
+                                </span>
                                 @endif
                             </td>
                             <td class="px-6 py-4 text-right text-sm font-medium">
@@ -672,12 +610,12 @@ new class extends Component {
                                     </flux:button>
 
                                     @if($job->status === 'open')
-                                    <flux:button size="xs" variant="primary" wire:click="closeJob({{ $job->id }})">
+                                    <flux:button size="xs" variant="danger" wire:click="closeJob({{ $job->id }})">
                                         Close
                                     </flux:button>
                                     @else
                                     <flux:button size="xs" variant="primary" wire:click="reopenJob({{ $job->id }})">
-                                        Open
+                                        Reopen
                                     </flux:button>
                                     @endif
 
@@ -703,6 +641,12 @@ new class extends Component {
                                         found</h3>
                                     <p class="mt-2 text-slate-500 dark:text-slate-400 max-w-sm">Get started by creating
                                         your first job booking using the "New Job Booking" button above.</p>
+                                    <flux:modal.trigger name="job-form" class="mt-4">
+                                        <flux:button variant="primary" class="flex items-center">
+                                            <flux:icon name="plus" class="h-4 w-4 mr-2" />
+                                            Add Your First Job Booking
+                                        </flux:button>
+                                    </flux:modal.trigger>
                                 </div>
                             </td>
                         </tr>

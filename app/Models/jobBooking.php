@@ -4,7 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class JobBooking extends Model
+class jobBooking extends Model
 {
     protected $table = 'job_bookings';
 
@@ -25,5 +25,9 @@ class JobBooking extends Model
         $latestJob = self::orderBy('id', 'desc')->first();
         $nextId = $latestJob ? $latestJob->id + 1 : 1;
         return 'JOB-' . str_pad($nextId, 5, '0', STR_PAD_LEFT);
+    }
+    public function getStatusAttribute($value)
+    {
+        return $value === 'open' ? 'Open' : 'Closed';
     }
 }

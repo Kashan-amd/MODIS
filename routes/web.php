@@ -21,18 +21,18 @@ Route::middleware(['auth'])->group(function ()
     Volt::route('settings/appearance', 'settings.appearance')->name('settings.appearance');
 
     // Transactions routes
-    Volt::route('transactions', 'transactions')->name('transactions');
-    Volt::route('transactions', 'transactions')->name('transactions');
+    Volt::route('accounts/transactions', 'transactions')->name('accounts.transactions');
+    Route::get('accounts/transactions/print-ledger', [\App\Http\Controllers\TransactionsPdfController::class, 'printLedger'])->name('accounts.transactions.print-ledger');
 
     // Admin routes
     Volt::route('admin/organizations', 'admin.organizations')->name('admin.organizations');
     Volt::route('admin/clients', 'admin.clients')->name('admin.clients');
     Volt::route('admin/vendors', 'admin.vendors')->name('admin.vendors');
     Volt::route('admin/items', 'admin.items')->name('admin.items');
+    Volt::route('admin/opening-balances', 'admin.opening-balances')->name('admin.opening-balances');
 
-    // Sales routes
+    // job booking sales route
     Volt::route('sales/job-booking', 'sales.job-booking')->name('sales.job-booking');
-
 });
 
 require __DIR__ . '/auth.php';
