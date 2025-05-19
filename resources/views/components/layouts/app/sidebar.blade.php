@@ -29,13 +29,13 @@
                 <flux:navlist.item icon="users" :href="route('admin.clients')">Clients</flux:navlist.item>
                 <flux:navlist.item icon="building-storefront" :href="route('admin.vendors')">Vendors
                 </flux:navlist.item>
-                <flux:navlist.item icon="clipboard-document-check" :href="route('admin.items')">Items
+                <flux:navlist.item icon="cube" :href="route('admin.items')">Items
                 </flux:navlist.item>
                 <flux:navlist.item icon="circle-stack" href="#">Banks</flux:navlist.item>
             </flux:navlist.group>
 
             <flux:navlist.group expandable :heading="__('Jobs')" class="hidden lg:grid" :expanded="true">
-                <flux:navlist.item icon="queue-list" href="#">Job Booking</flux:navlist.item>
+                <flux:navlist.item icon="clipboard-document-list" :href="route('sales.job-booking')">Job Booking</flux:navlist.item>
                 <flux:navlist.item icon="calculator" href="#">Costing</flux:navlist.item>
             </flux:navlist.group>
 

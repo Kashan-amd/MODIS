@@ -30,8 +30,9 @@ Route::middleware(['auth'])->group(function ()
     Volt::route('admin/vendors', 'admin.vendors')->name('admin.vendors');
     Volt::route('admin/items', 'admin.items')->name('admin.items');
 
-    // Examples routes
-    Route::view('examples/glass-card', 'examples.glass-card')->name('examples.glass-card');
+    // Sales routes
+    Volt::route('sales/job-booking', 'sales.job-booking')->name('sales.job-booking');
+
 });
 
 require __DIR__ . '/auth.php';
