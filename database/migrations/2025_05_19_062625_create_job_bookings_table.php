@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::create('job_bookings', function (Blueprint $table)
         {
             $table->id();
+            $table->foreignId('organization_id')->constrained('organizations')->onDelete('cascade');
             $table->string('job_number')->unique();
             $table->string('campaign');
             $table->foreignId('client_id')->constrained('clients')->onDelete('cascade');

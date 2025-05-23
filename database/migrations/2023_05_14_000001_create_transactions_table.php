@@ -17,7 +17,6 @@ return new class extends Migration
             $table->foreignId('from_organization_id')->constrained('organizations');
             $table->foreignId('to_organization_id')->constrained('organizations');
             $table->decimal('amount', 10, 2);
-            // Using string instead of ENUM for SQLite compatibility
             $table->string('transaction_type');
             $table->timestamp('transaction_date')->useCurrent();
             $table->timestamps();

@@ -8,12 +8,13 @@ Route::get('/', function ()
     return view('welcome');
 })->name('home');
 
-Route::view('dashboard', 'dashboard')
-    ->middleware(['auth', 'verified'])
-    ->name('dashboard');
 
 Route::middleware(['auth'])->group(function ()
 {
+
+    // VOLT dashboard
+    Volt::route('dashboard', 'dashboard')->name('dashboard');
+
     Route::redirect('settings', 'settings/profile');
 
     Volt::route('settings/profile', 'settings.profile')->name('settings.profile');
@@ -23,6 +24,11 @@ Route::middleware(['auth'])->group(function ()
     // Transactions routes
     Volt::route('accounts/transactions', 'transactions')->name('accounts.transactions');
     Route::get('accounts/transactions/print-ledger', [\App\Http\Controllers\TransactionsPdfController::class, 'printLedger'])->name('accounts.transactions.print-ledger');
+
+    // Accounting routes
+    Volt::route('accounts/chart-of-accounts', 'accounting.chart-of-accounts')->name('accounts.chart-of-accounts');
+    Volt::route('accounts/journal-entries', 'accounting.journal-entries')->name('accounts.journal-entries');
+    Volt::route('accounts/financial-reports', 'accounting.financial-reports')->name('accounts.financial-reports');
 
     // Admin routes
     Volt::route('admin/organizations', 'admin.organizations')->name('admin.organizations');

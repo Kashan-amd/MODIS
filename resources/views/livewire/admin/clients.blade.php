@@ -152,7 +152,7 @@ new class extends Component {
                                 placeholder="Enter client name">
                             </flux:input>
                             @error('name')
-                            <span class="text-red-500 text-xs">{{ $message }}</span>
+                                <span class="text-red-500 text-xs">{{ $message }}</span>
                             @enderror
                         </div>
 
@@ -163,7 +163,7 @@ new class extends Component {
                                 placeholder="Enter business name">
                             </flux:input>
                             @error('business_name')
-                            <span class="text-red-500 text-xs">{{ $message }}</span>
+                                <span class="text-red-500 text-xs">{{ $message }}</span>
                             @enderror
                         </div>
 
@@ -175,7 +175,7 @@ new class extends Component {
                                     placeholder="Enter contact person">
                                 </flux:input>
                                 @error('contact_person')
-                                <span class="text-red-500 text-xs">{{ $message }}</span>
+                                    <span class="text-red-500 text-xs">{{ $message }}</span>
                                 @enderror
                             </div>
 
@@ -186,7 +186,7 @@ new class extends Component {
                                     placeholder="Enter contact number">
                                 </flux:input>
                                 @error('contact_number')
-                                <span class="text-red-500 text-xs">{{ $message }}</span>
+                                    <span class="text-red-500 text-xs">{{ $message }}</span>
                                 @enderror
                             </div>
                         </div>
@@ -198,7 +198,7 @@ new class extends Component {
                                 placeholder="Enter address" rows="2">
                             </flux:textarea>
                             @error('address')
-                            <span class="text-red-500 text-xs">{{ $message }}</span>
+                                <span class="text-red-500 text-xs">{{ $message }}</span>
                             @enderror
                         </div>
 
@@ -209,17 +209,17 @@ new class extends Component {
                                 placeholder="Enter BM official">
                             </flux:input>
                             @error('bm_official')
-                            <span class="text-red-500 text-xs">{{ $message }}</span>
+                                <span class="text-red-500 text-xs">{{ $message }}</span>
                             @enderror
                         </div>
                     </div>
 
                     <div class="mt-4 flex justify-end">
                         @if ($isEditing)
-                        <flux:button type="button" variant="danger" wire:click="cancelEdit"
-                            class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md hover:bg-gray-50 mr-2">
-                            Cancel
-                        </flux:button>
+                            <flux:button type="button" variant="danger" wire:click="cancelEdit"
+                                class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md hover:bg-gray-50 mr-2">
+                                Cancel
+                            </flux:button>
                         @endif
                         <flux:button type="submit" variant="primary"
                             class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
@@ -240,8 +240,8 @@ new class extends Component {
                     </flux:input>
                 </div>
                 <div class="flex items-center">
-                    <span class="text-sm text-indigo-300 mr-2">{{ $clients->total() }} {{ Str::plural('client',
-                        $clients->total()) }}</span>
+                    <span class="text-sm text-indigo-300 mr-2">{{ $clients->total() }}
+                        {{ Str::plural('client', $clients->total()) }}</span>
                 </div>
             </div>
 
@@ -283,97 +283,96 @@ new class extends Component {
                     </thead>
                     <tbody class="bg-indigo-900/10 backdrop-blur-sm divide-y divide-indigo-200/10">
                         @forelse ($clients as $client)
-                        <tr class="hover:bg-indigo-900/20 transition-colors duration-200">
-                            <td class="px-6 py-4 text-sm">
-                                <div>
-                                    <div class="font-medium text-slate-800 dark:text-slate-100">{{ $client->name }}
+                            <tr class="hover:bg-indigo-900/20 transition-colors duration-200">
+                                <td class="px-6 py-4 text-sm">
+                                    <div>
+                                        <div class="font-medium text-slate-800 dark:text-slate-100">{{ $client->name }}
+                                        </div>
+                                        @if ($client->address)
+                                            <div
+                                                class="text-slate-500 dark:text-slate-400 text-xs flex items-center mt-1">
+                                                <flux:icon name="map-pin" class="h-3 w-3 mr-1" />
+                                                {{ $client->address }}
+                                            </div>
+                                        @endif
                                     </div>
-                                    @if($client->address)
-                                    <div class="text-slate-500 dark:text-slate-400 text-xs flex items-center mt-1">
-                                        <flux:icon name="map-pin" class="h-3 w-3 mr-1" />
-                                        {{ $client->address }}
+                                </td>
+                                <td class="px-6 py-4 text-sm">
+                                    <div class="flex items-center">
+                                        @if ($client->business_name)
+                                            <span
+                                                class="px-2 py-1 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-200 text-xs">
+                                                {{ $client->business_name }}
+                                            </span>
+                                        @else
+                                            <span class="text-slate-400 italic">Not provided</span>
+                                        @endif
                                     </div>
-                                    @endif
-                                </div>
-                            </td>
-                            <td class="px-6 py-4 text-sm">
-                                <div class="flex items-center">
-                                    @if($client->business_name)
-                                    <span
-                                        class="px-2 py-1 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-200 text-xs">
-                                        {{ $client->business_name }}
-                                    </span>
+                                </td>
+                                <td class="px-6 py-4 text-sm">
+                                    <div>
+                                        @if ($client->contact_person)
+                                            <div class="font-medium">{{ $client->contact_person }}</div>
+                                        @else
+                                            <span class="text-slate-400 italic">Not provided</span>
+                                        @endif
+
+                                        @if ($client->bm_official)
+                                            <div
+                                                class="text-slate-500 dark:text-indigo-300 text-xs flex items-center mt-1">
+                                                <span
+                                                    class="px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-200 text-xs">
+                                                    BM: {{ $client->bm_official }}
+                                                </span>
+                                            </div>
+                                        @endif
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 text-sm">
+                                    @if ($client->contact_number)
+                                        <div class="flex items-center">
+                                            <span>{{ $client->contact_number }}</span>
+                                        </div>
                                     @else
-                                    <span class="text-slate-400 italic">Not provided</span>
+                                        <span class="text-slate-400 italic">Not provided</span>
                                     @endif
-                                </div>
-                            </td>
-                            <td class="px-6 py-4 text-sm">
-                                <div>
-                                    @if($client->contact_person)
-                                    <div class="font-medium">{{ $client->contact_person }}</div>
-                                    @else
-                                    <span class="text-slate-400 italic">Not provided</span>
-                                    @endif
+                                </td>
+                                <td class="px-6 py-4 text-right text-sm font-medium">
+                                    <div class="flex justify-end space-x-2">
+                                        <flux:button variant="primary" size="xs"
+                                            wire:click="editClient({{ $client->id }})" class="flex items-center">
 
-                                    @if($client->bm_official)
-                                    <div class="text-slate-500 dark:text-indigo-300 text-xs flex items-center mt-1">
-                                        <span
-                                            class="px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-200 text-xs">
-                                            BM: {{ $client->bm_official }}
-                                        </span>
-                                    </div>
-                                    @endif
-                                </div>
-                            </td>
-                            <td class="px-6 py-4 text-sm">
-                                @if($client->contact_number)
-                                <div class="flex items-center">
-                                    <span>{{ $client->contact_number }}</span>
-                                </div>
-                                @else
-                                <span class="text-slate-400 italic">Not provided</span>
-                                @endif
-                            </td>
-                            <td class="px-6 py-4 text-right text-sm font-medium">
-                                <div class="flex justify-end space-x-2">
-                                    <flux:button variant="primary" size="xs" wire:click="editClient({{ $client->id }})"
-                                        class="flex items-center">
-
-                                        <span>Edit</span>
-                                    </flux:button>
-                                    <flux:button variant="danger" size="xs" wire:click="deleteClient({{ $client->id }})"
-                                        wire:confirm="Are you sure you want to delete this client?"
-                                        class="flex items-center">
-
-                                        <span>Delete</span>
-                                    </flux:button>
-                                </div>
-                            </td>
-                        </tr>
-                        @empty
-                        <tr>
-                            <td colspan="5" class="px-6 py-12 text-center">
-                                <div
-                                    class="flex flex-col items-center justify-center p-6 bg-indigo-900/10 rounded-xl backdrop-blur-sm">
-                                    <div
-                                        class="w-20 h-20 rounded-full bg-indigo-900/20 flex items-center justify-center mb-4">
-                                        <flux:icon name="users"
-                                            class="w-12 h-12 text-indigo-300 dark:text-indigo-400" />
-                                    </div>
-                                    <h3 class="text-xl font-medium text-slate-800 dark:text-slate-200">No clients found
-                                    </h3>
-                                    <p class="mt-2 text-slate-500 dark:text-slate-400 max-w-sm">Get started by creating
-                                        your first client using the "New Client" button above.</p>
-                                    <flux:modal.trigger name="client-form" class="mt-4">
-                                        <flux:button variant="primary" class="flex items-center">
-                                            <flux:icon name="plus" class="h-4 w-4 mr-2" />
-                                            Add Your First Client
+                                            <span>Edit</span>
                                         </flux:button>
-                                    </flux:modal.trigger>
-                                </div>
-                            </td>
-                        </tr>
+                                        <flux:button variant="danger" size="xs"
+                                            wire:click="deleteClient({{ $client->id }})"
+                                            wire:confirm="Are you sure you want to delete this client?"
+                                            class="flex items-center">
+
+                                            <span>Delete</span>
+                                        </flux:button>
+                                    </div>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="5" class="px-6 py-12 text-center">
+                                    <div
+                                        class="flex flex-col items-center justify-center p-6 bg-indigo-900/10 rounded-xl backdrop-blur-sm">
+                                        <div
+                                            class="w-20 h-20 rounded-full bg-indigo-900/20 flex items-center justify-center mb-4">
+                                            <flux:icon name="users"
+                                                class="w-12 h-12 text-indigo-300 dark:text-indigo-400" />
+                                        </div>
+                                        <h3 class="text-xl font-medium text-slate-800 dark:text-slate-200">No clients
+                                            found
+                                        </h3>
+                                        <p class="mt-2 text-slate-500 dark:text-slate-400 max-w-sm">Get started by
+                                            creating
+                                            your first client using the "New Client" button above.</p>
+                                    </div>
+                                </td>
+                            </tr>
                         @endforelse
                     </tbody>
                 </table>

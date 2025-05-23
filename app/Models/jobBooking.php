@@ -10,6 +10,11 @@ class jobBooking extends Model
 
     protected $guarded = [];
 
+    public function organization()
+    {
+        return $this->belongsTo(Organization::class);
+    }
+
     public function client()
     {
         return $this->belongsTo(Client::class);

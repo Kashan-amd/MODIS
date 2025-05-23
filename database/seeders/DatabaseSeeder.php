@@ -23,6 +23,7 @@ class DatabaseSeeder extends Seeder
         // Seed organizations and transactions
         $this->call([
             OrganizationSeeder::class,
+            AccountingSeeder::class,
         ]);
     }
 }
