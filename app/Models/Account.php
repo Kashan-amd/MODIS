@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Collection;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Akaunting\Money\Money;
@@ -38,13 +39,35 @@ class Account extends Model
         'level' => 'integer',
     ];
 
-    // Account types
+    // Account types as constants
     const TYPE_ASSET = 'asset';
     const TYPE_LIABILITY = 'liability';
     const TYPE_EQUITY = 'equity';
     const TYPE_INCOME = 'income';
     const TYPE_EXPENSE = 'expense';
 
+    // Relationships
+    public function organization(): BelongsTo
+    {
+        return $this->belongsTo(Organization::class);
+    }
+
+    public function parent(): BelongsTo
+    {
+        return $this->belongsTo(Account::class, 'parent_id');
+    }
+
+    public function children(): HasMany
+    {
+        return $this->hasMany(Account::class, 'parent_id');
+    }
+
+    public function transactionEntries(): HasMany
+    {
+        return $this->hasMany(TransactionEntry::class);
+    }
+
+    // Static Methods
     public static function getTypes(): array
     {
         return [
@@ -56,167 +79,146 @@ class Account extends Model
         ];
     }
 
-    public function organization(): BelongsTo
-    {
-        return $this->belongsTo(Organization::class);
-    }
-
-    public function transactions(): HasMany
-    {
-        return $this->hasMany(Transaction::class);
-    }
-
-    public function formatMoney($amount): string
-    {
-        return Money::PKR($amount * 100)->format();
-    }
-
-    public function getFormattedCurrentBalanceAttribute(): string
-    {
-        return $this->formatMoney($this->current_balance);
-    }
-
-    public function getFormattedOpeningBalanceAttribute(): string
-    {
-        return $this->formatMoney($this->opening_balance);
-    }
-
-    /**
-     * Get the parent account
-     */
-    public function parent(): BelongsTo
-    {
-        return $this->belongsTo(Account::class, 'parent_id');
-    }
-
-    /**
-     * Get the child accounts
-     */
-    public function children(): HasMany
-    {
-        return $this->hasMany(Account::class, 'parent_id');
-    }
-
-    /**
-     * Check if account has children
-     */
-    public function hasChildren(): bool
-    {
-        return $this->children()->count() > 0;
-    }
-
-    /**
-     * Check if account is a head parent (no organization, accessible across all orgs)
-     */
-    public function isHeadParent(): bool
-    {
-        return $this->is_parent && $this->organization_id === null;
-    }
-
-    /**
-     * Check if account is a main/parent account
-     */
-    public function isMainAccount(): bool
-    {
-        return $this->parent_id === null;
-    }
-
-    /**
-     * Get the formatted account name with number
-     */
+    // Accessors & Mutators
     public function getFullAccountNameAttribute(): string
     {
         return "{$this->account_number} - {$this->name}";
     }
 
-    /**
-     * Format the account number properly
-     */
-    public function getFormattedAccountNumberAttribute(): string
+    public function getFormattedCurrentBalanceAttribute(): string
     {
-        // For parent accounts, just return the original number
-        if ($this->is_parent)
-        {
-            return $this->account_number;
-        }
-
-        // For non-parent accounts, extract parent number and suffix if exists
-        $parts = explode('-', $this->account_number);
-        if (count($parts) === 2)
-        {
-            return $this->account_number; // Already formatted correctly
-        }
-
-        // For non-formatted account numbers, append -1 to indicate it's a sub-account
-        return $this->account_number . '-1';
+        return Money::PKR($this->current_balance * 100)->format();
     }
 
-    /**
-     * Get all main accounts (parents only)
-     *
-     * @param int|null $organizationId The organization ID or null to get head parent accounts
-     * @param bool $includeHeadParents Whether to include head parent accounts (accessible across all orgs)
-     * @return \Illuminate\Database\Eloquent\Collection
-     */
-    public static function getMainAccounts($organizationId, bool $includeHeadParents = false)
+    public function getFormattedOpeningBalanceAttribute(): string
     {
-        $query = self::whereNull('parent_id');
+        return Money::PKR($this->opening_balance * 100)->format();
+    }
 
-        if ($includeHeadParents)
+    // Query Scopes
+    public function scopeActive($query)
+    {
+        return $query->where('is_active', true);
+    }
+
+    public function scopeOrganizationAccounts($query, $organizationId)
+    {
+        return $query->where(function ($q) use ($organizationId)
         {
-            // If we want to include head parents, get organization-specific accounts AND head parents
-            $query->where(function ($q) use ($organizationId)
+            $q->where('organization_id', $organizationId)
+                ->orWhereNull('organization_id');
+        });
+    }
+
+    // Helper Methods
+    public function hasChildren(): bool
+    {
+        return $this->children()->exists();
+    }
+
+    public function isHeadParent(): bool
+    {
+        return $this->is_parent && $this->organization_id === null;
+    }
+
+    public function isMainAccount(): bool
+    {
+        return $this->parent_id === null;
+    }
+
+    public function transactions()
+    {
+        return Transaction::whereHas('entries', fn($query) => $query->where('account_id', $this->id));
+    }
+
+    public function getNextSubAccountNumber(): string
+    {
+        // Get all child account numbers
+        $subAccounts = $this->children()
+            ->where('account_number', 'like', $this->account_number . '-%')
+            ->get();
+
+        if ($subAccounts->isEmpty())
+        {
+            return $this->account_number . '-1';
+        }
+
+        // Extract the highest sub-account sequence number
+        $maxSeq = $subAccounts
+            ->map(function ($account)
             {
-                $q->where('organization_id', $organizationId)
-                    ->orWhereNull('organization_id');
-            });
-        }
-        else
-        {
-            // Otherwise, just get accounts for the specified organization
-            $query->where('organization_id', $organizationId);
-        }
+                $parts = explode('-', $account->account_number);
+                return isset($parts[1]) ? (int)$parts[1] : 0;
+            })
+            ->max();
 
-        return $query->orderBy('account_number')->get();
+        return $this->account_number . '-' . ($maxSeq + 1);
     }
 
-    /**
-     * Create a new head parent account
-     *
-     * @param array $attributes The account attributes
-     * @return \App\Models\Account
-     */
-    public static function createHeadParent(array $attributes): self
+    // Add method to standardize account number format
+    public static function standardizeAccountNumber(string $number): string
     {
-        $attributes['is_parent'] = true;
-        $attributes['organization_id'] = null;
+        // Remove any extra spaces
+        $number = trim($number);
+
+        if (str_contains($number, '-'))
+        {
+            // For sub-accounts, ensure proper formatting
+            list($main, $sub) = array_pad(explode('-', $number, 2), 2, '');
+            return sprintf('%s-%d', trim($main), (int)$sub);
+        }
+
+        // For main accounts, just return the number
+        return $number;
+    }
+
+    // Creation Methods
+    public static function createHeadAccount(array $attributes): self
+    {
+        if (str_contains($attributes['account_number'], '-'))
+        {
+            throw new \InvalidArgumentException('Head account number should not contain a hyphen (-)');
+        }
+
+        $attributes['level'] = 0;
         $attributes['parent_id'] = null;
+
+        if (!empty($attributes['is_parent']) && empty($attributes['organization_id']))
+        {
+            $attributes['organization_id'] = null;
+        }
 
         return self::create($attributes);
     }
 
-    /**
-     * Get all accounts in hierarchical form
-     *
-     * @param int $organizationId The organization ID
-     * @param bool $includeHeadParents Whether to include head parent accounts (accessible across all orgs)
-     * @return array
-     */
-    public static function getAccountsHierarchy($organizationId, bool $includeHeadParents = true)
+    public function createSubAccount(array $attributes): self
     {
-        $mainAccounts = self::getMainAccounts($organizationId, $includeHeadParents);
-        $hierarchy = [];
+        $attributes = array_merge($attributes, [
+            'is_parent' => false,
+            'parent_id' => $this->id,
+            'level' => $this->level + 1
+        ]);
 
-        foreach ($mainAccounts as $account)
+        if (!str_contains($attributes['account_number'], '-'))
         {
-            $hierarchy[] = [
-                'account' => $account,
-                'children' => $account->children()
-                    ->orderBy('account_number')
-                    ->get()
-            ];
+            $attributes['account_number'] = $this->getNextSubAccountNumber();
         }
 
-        return $hierarchy;
+        $account = self::create($attributes);
+
+        if (!$this->is_parent)
+        {
+            $this->update(['is_parent' => true]);
+        }
+
+        return $account;
+    }
+
+    public static function getValidParents($organizationId): Collection
+    {
+        return self::where('is_parent', true)
+            ->organizationAccounts($organizationId)
+            ->orderBy('account_number')
+            ->get();
     }
 }
