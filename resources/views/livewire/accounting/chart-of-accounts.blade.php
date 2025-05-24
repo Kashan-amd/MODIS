@@ -18,6 +18,8 @@ new class extends Component {
     public $opening_balance = 0.0;
     public $balance_date = '';
     public $organization_id = '';
+    public $parent_id = null; // Add parent_id field
+    public $is_parent = false; // Flag to indicate if the account is a parent account
 
     // Edit mode
     public $editingAccountId = null;
@@ -27,7 +29,7 @@ new class extends Component {
     // Validation rules
     protected function rules()
     {
-        return [
+        $rules = [
             'account_number' => 'required|string|max:255',
             'name' => 'required|string|max:255',
             'type' => 'required|in:asset,liability,equity,income,expense',
@@ -36,7 +38,15 @@ new class extends Component {
             'opening_balance' => 'nullable|numeric',
             'balance_date' => 'nullable|date',
             'organization_id' => 'required|exists:organizations,id',
+            'parent_id' => 'nullable|exists:chart_of_accounts,id',
         ];
+
+        // If parent_id is set, make sure is_parent is false
+        if ($this->parent_id) {
+            $rules['is_parent'] = 'accepted:0'; // Must be false
+        }
+
+        return $rules;
     }
 
     public function mount()
@@ -55,33 +65,77 @@ new class extends Component {
     {
         $this->validate();
 
+        // Format account number if needed (for sub-accounts with just the head number)
+        $parts = explode('-', $this->account_number);
+
+        // If parent_id is set and account number doesn't have a dash, this is a sub-account
+        // We need to automatically add the appropriate sequence number
+        if ($this->parent_id && count($parts) === 1) {
+            $headNumber = $this->account_number;
+
+            // Find the maximum sequence number for this head number
+            $maxSeq = Account::where('account_number', 'like', $headNumber . '-%')
+                ->get()
+                ->map(function ($account) use ($headNumber) {
+                    $parts = explode('-', $account->account_number);
+                    return count($parts) === 2 ? (int) $parts[1] : 0;
+                })
+                ->max();
+
+            // If no existing sub-accounts, start with 1, otherwise increment
+            $nextSeq = $maxSeq ? $maxSeq + 1 : 1;
+            $this->account_number = $headNumber . '-' . $nextSeq;
+        }
+
+        // Determine level based on account number format or parent relationship
+        $level = 0;
+        $parts = explode('-', $this->account_number);
+        if (count($parts) === 2 || $this->parent_id) {
+            $level = 1; // This is a child account
+            $this->is_parent = false; // Child accounts cannot be parents
+        }
+
+        // For head parent accounts, set organization_id to null
+        $organizationId = $this->organization_id;
+        if ($this->is_parent && $level === 0) {
+            // Check if this is intended to be a head parent (accessible across orgs)
+            // For this example, assume any parent account for org ID 1 is a head parent
+            // You may want to add a dedicated checkbox for this in the UI
+            if ($this->organization_id == 1) {
+                // Default org ID
+                $organizationId = null;
+            }
+        }
+
+        $data = [
+            'account_number' => $this->account_number,
+            'name' => $this->name,
+            'type' => $this->type,
+            'description' => $this->description,
+            'is_active' => $this->is_active,
+            'opening_balance' => $this->opening_balance,
+            'current_balance' => $this->opening_balance,
+            'balance_date' => $this->balance_date,
+            'organization_id' => $organizationId,
+            'level' => $level,
+            'is_parent' => $this->is_parent && $level === 0, // Only base accounts can be parents
+            'parent_id' => $this->parent_id,
+        ];
+
         if ($this->isEditing) {
             $account = Account::find($this->editingAccountId);
-            $account->update([
-                'account_number' => $this->account_number,
-                'name' => $this->name,
-                'type' => $this->type,
-                'description' => $this->description,
-                'is_active' => $this->is_active,
-                'opening_balance' => $this->opening_balance,
-                'current_balance' => $this->opening_balance, // Initially set to opening balance
-                'balance_date' => $this->balance_date,
-                'organization_id' => $this->organization_id,
-            ]);
-
+            $account->update($data);
             $this->dispatch('account-updated', 'Account updated successfully');
         } else {
-            Account::create([
-                'account_number' => $this->account_number,
-                'name' => $this->name,
-                'type' => $this->type,
-                'description' => $this->description,
-                'is_active' => $this->is_active,
-                'opening_balance' => $this->opening_balance,
-                'current_balance' => $this->opening_balance, // Initially set to opening balance
-                'balance_date' => $this->balance_date,
-                'organization_id' => $this->organization_id,
-            ]);
+            $account = Account::create($data);
+
+            // If this is a child account, make sure the parent is marked as a parent
+            if ($this->parent_id) {
+                $parent = Account::find($this->parent_id);
+                if ($parent && !$parent->is_parent) {
+                    $parent->update(['is_parent' => true]);
+                }
+            }
 
             $this->dispatch('account-created', 'Account created successfully');
         }
@@ -99,31 +153,51 @@ new class extends Component {
         $this->account_number = $account->account_number;
         $this->name = $account->name;
         $this->type = $account->type;
-        $this->description = $account->description;
+        $this->description = $this->description;
         $this->is_active = $account->is_active;
         $this->opening_balance = $account->opening_balance;
         $this->balance_date = $account->balance_date ? $account->balance_date->format('Y-m-d') : now()->format('Y-m-d');
         $this->organization_id = $account->organization_id;
+        $this->parent_id = $account->parent_id;
 
         $this->modal('account-form')->show();
     }
 
     public function deleteAccount($accountId)
     {
-        // Check if account has related transactions
         $account = Account::find($accountId);
-        if ($account && $account->transactions()->count() > 0) {
+
+        if (!$account) {
+            return;
+        }
+
+        // Check if account has related transactions
+        if ($account->transactions()->count() > 0) {
             $this->dispatch('account-error', 'Cannot delete account with related transactions');
             return;
         }
 
-        Account::destroy($accountId);
+        // Check if account has children
+        if ($account->hasChildren()) {
+            $this->dispatch('account-error', 'Cannot delete account with child accounts. Please delete child accounts first.');
+            return;
+        }
+
+        // Update parent's is_parent flag if needed
+        if ($account->parent_id) {
+            $parent = Account::find($account->parent_id);
+            if ($parent && $parent->children()->count() <= 1) {
+                $parent->update(['is_parent' => false]);
+            }
+        }
+
+        $account->delete();
         $this->dispatch('account-deleted', 'Account deleted successfully');
     }
 
     public function resetForm()
     {
-        $this->reset(['account_number', 'name', 'type', 'description', 'is_active', 'opening_balance', 'editingAccountId', 'isEditing']);
+        $this->reset(['account_number', 'name', 'type', 'description', 'is_active', 'opening_balance', 'editingAccountId', 'isEditing', 'parent_id', 'is_parent']);
 
         // Keep organization_id and set date to today
         $this->balance_date = now()->format('Y-m-d');
@@ -149,7 +223,8 @@ new class extends Component {
                         ->orWhere('description', 'like', "%{$search}%");
                 });
             })
-            ->orderBy('account_number');
+            ->orderBy('account_number')
+            ->with(['parent', 'children']);
 
         return [
             'accounts' => $query->paginate(10),
@@ -266,7 +341,7 @@ new class extends Component {
         <!-- Account Form Modal -->
         <flux:modal name="account-form" class="w-full max-w-4xl">
             <x-glass-card colorScheme="indigo" class="overflow-hidden">
-                <form wire:submit="saveAccount">
+                <form wire:submit.prevent="saveAccount">
                     <div class="space-y-6">
                         <div class="border-b border-indigo-200/20 pb-6">
                             <h3 class="text-lg font-medium text-indigo-100">
@@ -288,7 +363,11 @@ new class extends Component {
                                 </div>
 
                                 <div>
-                                    <label for="account_number" class="block text-sm font-medium">Account Number</label>
+                                    <label for="account_number" class="block text-sm font-medium">Account Number
+                                        <span class="text-xs text-gray-500">
+                                            (Parent: 1000, Child: 1000-1)
+                                        </span>
+                                    </label>
                                     <flux:input id="account_number" type="text" wire:model="account_number"
                                         class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                                         placeholder="Enter account number">
@@ -327,7 +406,7 @@ new class extends Component {
                                 </div>
                             </div>
 
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                            <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label for="opening_balance" class="block text-sm font-medium">Opening
                                         Balance</label>
@@ -363,23 +442,49 @@ new class extends Component {
                                 @enderror
                             </div>
 
-                            <div class="mt-4 flex items-center">
-                                <flux:checkbox id="is_active" wire:model="is_active" class="mr-2"></flux:checkbox>
-                                <label for="is_active" class="text-sm font-medium">Active Account</label>
+                            <div class="mt-4 flex items-center space-x-6">
+                                <div class="flex items-center">
+                                    <flux:checkbox id="is_active" wire:model="is_active" class="mr-2"></flux:checkbox>
+                                    <label for="is_active" class="text-sm font-medium">Active Account</label>
+                                </div>
+                                <div class="flex items-center">
+                                    <flux:checkbox id="is_parent" wire:model="is_parent" class="mr-2">
+                                    </flux:checkbox>
+                                    <label for="is_parent" class="text-sm font-medium">Parent Account</label>
+                                </div>
                             </div>
-                        </div>
 
-                        <div class="mt-6 flex justify-end">
-                            @if ($isEditing)
-                                <flux:button type="button" variant="danger" wire:click="cancelEdit"
-                                    class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md hover:bg-gray-50 mr-2">
-                                    Cancel
+                            <div class="mt-4">
+                                <label for="parent_id" class="block text-sm font-medium">Parent Account
+                                    (optional)</label>
+                                <flux:select id="parent_id" wire:model="parent_id"
+                                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                    <flux:select.option value="">No Parent (Main Account)</flux:select.option>
+                                    @foreach (Account::where('is_parent', true)->where(function ($query) {
+            $query->where('organization_id', $this->organization_id)->orWhereNull('organization_id'); // Include head parents
+        })->orderBy('account_number')->get() as $parentAccount)
+                                        <flux:select.option value="{{ $parentAccount->id }}">
+                                            {{ $parentAccount->full_account_name }}
+                                        </flux:select.option>
+                                    @endforeach
+                                </flux:select>
+                                @error('parent_id')
+                                    <span class="text-red-500 text-xs">{{ $message }}</span>
+                                @enderror
+                            </div>
+
+                            <div class="mt-6 flex justify-end">
+                                @if ($isEditing)
+                                    <flux:button type="button" variant="danger" wire:click="cancelEdit"
+                                        class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md hover:bg-gray-50 mr-2">
+                                        Cancel
+                                    </flux:button>
+                                @endif
+                                <flux:button type="submit" variant="primary"
+                                    class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                                    {{ $isEditing ? 'Update Account' : 'Create Account' }}
                                 </flux:button>
-                            @endif
-                            <flux:button type="submit" variant="primary"
-                                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                                {{ $isEditing ? 'Update Account' : 'Create Account' }}
-                            </flux:button>
+                            </div>
                         </div>
                     </div>
                 </form>
@@ -445,10 +550,27 @@ new class extends Component {
                         @forelse ($accounts as $account)
                             <tr class="hover:bg-indigo-900/20 transition-colors duration-200">
                                 <td class="px-6 py-4 text-sm">
-                                    <div class="font-medium text-indigo-100">{{ $account->account_number }}</div>
+                                    <div class="font-medium text-indigo-100">
+                                        @if ($account->level > 0)
+                                            <span class="inline-block"
+                                                style="margin-left: {{ $account->level * 20 }}px">
+                                                <span class="text-indigo-400 mr-2">└─</span>
+                                            </span>
+                                        @endif
+                                        {{ $account->formatted_account_number }}
+                                    </div>
                                 </td>
                                 <td class="px-6 py-4 text-sm text-indigo-200">
+                                    @if ($account->level > 0)
+                                        <span class="inline-block" style="margin-left: {{ $account->level * 20 }}px">
+                                    @endif
                                     {{ $account->name }}
+                                    @if ($account->is_parent)
+                                        <span class="ml-2 text-xs text-indigo-400">(Parent)</span>
+                                    @endif
+                                    @if ($account->level > 0)
+                                        </span>
+                                    @endif
                                 </td>
                                 <td class="px-6 py-4 text-sm">
                                     <span
