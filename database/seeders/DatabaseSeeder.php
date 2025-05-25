@@ -24,8 +24,8 @@ class DatabaseSeeder extends Seeder
         // Seed organizations, accounting data, and items
         $this->call([
             OrganizationSeeder::class,
-            AccountingSeeder::class,
             ItemsSeeder::class,
+            ChartOfAccountsSeeder::class,
         ]);
     }
 }

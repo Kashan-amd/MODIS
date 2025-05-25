@@ -18,7 +18,7 @@ class OrganizationSeeder extends Seeder
             'Amaya LHR',
             'Amaya Burban',
             'Event Management',
-            'Investment Group'
+            'IHC'
         ];
 
         foreach ($organizations as $org)
