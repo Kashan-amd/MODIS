@@ -90,7 +90,8 @@ new class extends Component {
         <div>
             <h1 class="text-2xl font-bold text-gray-800 dark:text-white sm:text-3xl">
                 {{-- name of selected organization --}}
-                {{ $selectedOrganizationId && count($organizations) > 0 ? $organizations->firstWhere('id', $selectedOrganizationId)->name : 'Select Organization' }}
+                {{ $selectedOrganizationId && count($organizations) > 0 ? $organizations->firstWhere('id',
+                $selectedOrganizationId)->name : 'Select Organization' }}
             </h1>
         </div>
 
@@ -110,7 +111,9 @@ new class extends Component {
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                             </svg>
-                            <span>{{ $selectedOrganizationId && count($organizations) > 0 ? $organizations->firstWhere('id', $selectedOrganizationId)->name : 'Select Organization' }}</span>
+                            <span>{{ $selectedOrganizationId && count($organizations) > 0 ?
+                                $organizations->firstWhere('id', $selectedOrganizationId)->name : 'Select Organization'
+                                }}</span>
                         </span>
                         <svg class="h-5 w-5 text-indigo-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
                             fill="currentColor">
@@ -126,22 +129,19 @@ new class extends Component {
                         x-transition:leave="transition ease-in duration-150"
                         x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95"
                         class="absolute right-0 z-10 mt-2 w-48 overflow-hidden rounded-lg border border-indigo-200 bg-white shadow-lg
-                                dark:border-indigo-800 dark:bg-zinc-800"
-                        style="display: none;">
+                                dark:border-indigo-800 dark:bg-zinc-800" style="display: none;">
                         <div class="max-h-60 overflow-y-auto py-1">
                             @foreach ($organizations as $organization)
-                                <button type="button"
-                                    wire:click="$set('selectedOrganizationId', '{{ $organization->id }}')"
-                                    @click="open = false"
-                                    class="flex w-full items-center gap-2 px-4 py-2 text-left text-sm hover:bg-indigo-50 hover:text-indigo-700
+                            <button type="button" wire:click="$set('selectedOrganizationId', '{{ $organization->id }}')"
+                                @click="open = false" class="flex w-full items-center gap-2 px-4 py-2 text-left text-sm hover:bg-indigo-50 hover:text-indigo-700
                                                {{ $selectedOrganizationId == $organization->id ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300' : 'text-gray-700 dark:text-gray-300' }}
                                                dark:hover:bg-indigo-900/30 dark:hover:text-indigo-300">
-                                    <div
-                                        class="flex-shrink-0 h-6 w-6 flex items-center justify-center rounded-full bg-indigo-100 text-indigo-800 font-semibold text-xs dark:bg-indigo-900 dark:text-indigo-200">
-                                        {{ substr($organization->name, 0, 1) }}
-                                    </div>
-                                    <span>{{ $organization->name }}</span>
-                                </button>
+                                <div
+                                    class="flex-shrink-0 h-6 w-6 flex items-center justify-center rounded-full bg-indigo-100 text-indigo-800 font-semibold text-xs dark:bg-indigo-900 dark:text-indigo-200">
+                                    {{ substr($organization->name, 0, 1) }}
+                                </div>
+                                <span>{{ $organization->name }}</span>
+                            </button>
                             @endforeach
                         </div>
                     </div>
@@ -180,8 +180,8 @@ new class extends Component {
                     <h3 class="mb-1 text-lg font-semibold text-gray-800 dark:text-white">Upcoming Events
                     </h3>
                     <div class="flex items-baseline">
-                        <span
-                            class="text-3xl font-bold text-gray-800 dark:text-white">{{ $stats['upcomingEvents'] }}</span>
+                        <span class="text-3xl font-bold text-gray-800 dark:text-white">{{ $stats['upcomingEvents']
+                            }}</span>
                         <span class="ml-2 text-sm text-gray-500 dark:text-gray-400">This Month</span>
                     </div>
                     <div class="mt-4 flex items-center text-sm">
@@ -221,7 +221,7 @@ new class extends Component {
                     <div class="flex items-baseline">
                         <span class="text-3xl font-bold text-gray-800 dark:text-white">PKR
                             {{ number_format($stats['totalRevenue']) }}</span>
-                        <span class="ml-2 text-sm text-gray-500 dark:text-gray-400">This Quarter</span>
+                        <span class="ml-2 text-sm text-gray-500 dark:text-gray-400">This Month</span>
                     </div>
                     <div class="mt-4 flex items-center text-sm">
                         <span class="flex items-center text-green-600 dark:text-green-400">
@@ -232,7 +232,7 @@ new class extends Component {
                             </svg>
                             8.3% increase
                         </span>
-                        <span class="ml-2 text-gray-500 dark:text-gray-400">from last quarter</span>
+                        <span class="ml-2 text-gray-500 dark:text-gray-400">from last month</span>
                     </div>
                 </div>
             </div>
@@ -345,95 +345,88 @@ new class extends Component {
                     <div
                         class="divide-y divide-neutral-100 dark:divide-neutral-700/50 px-6 py-2 max-h-[240px] overflow-y-auto">
                         @if (count($upcomingEvents) > 0)
-                            @foreach ($upcomingEvents as $event)
+                        @foreach ($upcomingEvents as $event)
+                        <div
+                            class="group flex items-center py-3 transition-all hover:bg-indigo-50/30 dark:hover:bg-indigo-900/10 rounded-lg">
+                            <div class="mr-4 flex-shrink-0 relative">
                                 <div
-                                    class="group flex items-center py-3 transition-all hover:bg-indigo-50/30 dark:hover:bg-indigo-900/10 rounded-lg">
-                                    <div class="mr-4 flex-shrink-0 relative">
-                                        <div
-                                            class="rounded-xl bg-blue-100 p-2.5 text-blue-600 ring-4 ring-blue-50/50 dark:bg-blue-900/50 dark:text-blue-300 dark:ring-blue-900/20">
-                                            <svg class="h-5 w-5" fill="none" stroke="currentColor"
-                                                viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
-                                                </path>
-                                            </svg>
-                                        </div>
-                                        <div
-                                            class="absolute -bottom-1 -right-1 h-4 w-4 rounded-full border-2 border-white bg-{{ $event['status'] }}-500 dark:border-gray-800">
-                                        </div>
-                                    </div>
-                                    <div class="flex-grow">
-                                        <div class="flex items-center justify-between">
-                                            <h4
-                                                class="text-sm font-medium text-gray-800 group-hover:text-blue-600 dark:text-white dark:group-hover:text-blue-400">
-                                                {{ $event['title'] }}
-                                            </h4>
-                                        </div>
-                                        <div class="mt-1 flex flex-wrap gap-2">
-                                            <div class="flex items-center gap-1">
-                                                <svg class="h-3 w-3 text-gray-400" fill="none"
-                                                    stroke="currentColor" viewBox="0 0 24 24"
-                                                    xmlns="http://www.w3.org/2000/svg">
-                                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                                        stroke-width="2"
-                                                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
-                                                    </path>
-                                                </svg>
-                                                <span
-                                                    class="text-xs text-gray-500 dark:text-gray-400">{{ $event['date'] }}</span>
-                                            </div>
-                                            <div class="flex items-center gap-1">
-                                                <svg class="h-3 w-3 text-gray-400" fill="none"
-                                                    stroke="currentColor" viewBox="0 0 24 24"
-                                                    xmlns="http://www.w3.org/2000/svg">
-                                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                                        stroke-width="2"
-                                                        d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z">
-                                                    </path>
-                                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                                        stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                                                </svg>
-                                                <span
-                                                    class="text-xs text-gray-500 dark:text-gray-400">{{ $event['venue'] }}</span>
-                                            </div>
-                                            <div class="flex items-center gap-1">
-                                                <svg class="h-3 w-3 text-gray-400" fill="none"
-                                                    stroke="currentColor" viewBox="0 0 24 24"
-                                                    xmlns="http://www.w3.org/2000/svg">
-                                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                                        stroke-width="2"
-                                                        d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z">
-                                                    </path>
-                                                </svg>
-                                                <span
-                                                    class="text-xs text-gray-500 dark:text-gray-400">{{ $event['attendees'] }}
-                                                    attendees</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <button
-                                        class="ml-2 rounded-full p-1 text-gray-400 opacity-0 transition-opacity hover:bg-gray-100 hover:text-gray-600 group-hover:opacity-100 dark:hover:bg-gray-800 dark:hover:text-gray-300">
-                                        <svg class="h-4 w-4" fill="none" stroke="currentColor"
-                                            viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z">
-                                            </path>
-                                        </svg>
-                                    </button>
-                                </div>
-                            @endforeach
-                        @else
-                            <div class="flex items-center justify-center py-8 text-center">
-                                <div class="text-gray-500 dark:text-gray-400">
-                                    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor"
-                                        viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                                            d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                    class="rounded-xl bg-blue-100 p-2.5 text-blue-600 ring-4 ring-blue-50/50 dark:bg-blue-900/50 dark:text-blue-300 dark:ring-blue-900/20">
+                                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                        xmlns="http://www.w3.org/2000/svg">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
+                                        </path>
                                     </svg>
-                                    <h3 class="mt-2 text-sm font-medium">No upcoming events</h3>
-                                    <p class="mt-1 text-sm">Start by creating a new event or job booking.</p>
+                                </div>
+                                <div
+                                    class="absolute -bottom-1 -right-1 h-4 w-4 rounded-full border-2 border-white bg-{{ $event['status'] }}-500 dark:border-gray-800">
                                 </div>
                             </div>
+                            <div class="flex-grow">
+                                <div class="flex items-center justify-between">
+                                    <h4
+                                        class="text-sm font-medium text-gray-800 group-hover:text-blue-600 dark:text-white dark:group-hover:text-blue-400">
+                                        {{ $event['title'] }}
+                                    </h4>
+                                </div>
+                                <div class="mt-1 flex flex-wrap gap-2">
+                                    <div class="flex items-center gap-1">
+                                        <svg class="h-3 w-3 text-gray-400" fill="none" stroke="currentColor"
+                                            viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
+                                            </path>
+                                        </svg>
+                                        <span class="text-xs text-gray-500 dark:text-gray-400">{{ $event['date']
+                                            }}</span>
+                                    </div>
+                                    <div class="flex items-center gap-1">
+                                        <svg class="h-3 w-3 text-gray-400" fill="none" stroke="currentColor"
+                                            viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z">
+                                            </path>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                        </svg>
+                                        <span class="text-xs text-gray-500 dark:text-gray-400">{{ $event['venue']
+                                            }}</span>
+                                    </div>
+                                    <div class="flex items-center gap-1">
+                                        <svg class="h-3 w-3 text-gray-400" fill="none" stroke="currentColor"
+                                            viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z">
+                                            </path>
+                                        </svg>
+                                        <span class="text-xs text-gray-500 dark:text-gray-400">{{ $event['attendees'] }}
+                                            attendees</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <button
+                                class="ml-2 rounded-full p-1 text-gray-400 opacity-0 transition-opacity hover:bg-gray-100 hover:text-gray-600 group-hover:opacity-100 dark:hover:bg-gray-800 dark:hover:text-gray-300">
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                    xmlns="http://www.w3.org/2000/svg">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z">
+                                    </path>
+                                </svg>
+                            </button>
+                        </div>
+                        @endforeach
+                        @else
+                        <div class="flex items-center justify-center py-8 text-center">
+                            <div class="text-gray-500 dark:text-gray-400">
+                                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                                <h3 class="mt-2 text-sm font-medium">No upcoming events</h3>
+                                <p class="mt-1 text-sm">Start by creating a new event or job booking.</p>
+                            </div>
+                        </div>
                         @endif
                     </div>
 
@@ -450,9 +443,9 @@ new class extends Component {
                         <div>
                             <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Petty Cash</h3>
                             @if ($selectedOrganizationId && count($organizations) > 0)
-                                <p class="text-sm text-gray-500 dark:text-gray-400">
-                                    {{ $organizations->where('id', $selectedOrganizationId)->first()->name }}
-                                </p>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">
+                                {{ $organizations->where('id', $selectedOrganizationId)->first()->name }}
+                            </p>
                             @endif
                         </div>
                         <div class="inline-flex overflow-hidden rounded-lg bg-gray-100 p-0.5 dark:bg-gray-700">
@@ -552,16 +545,15 @@ new class extends Component {
                                     <span class="text-xs text-gray-500 dark:text-gray-400">Organization:</span>
                                     <span class="text-xs font-medium text-gray-700 dark:text-gray-200">
                                         {{ $selectedOrganizationId && count($organizations) > 0
-                                            ? $organizations->where('id', $selectedOrganizationId)->first()->name
-                                            : 'All' }}
+                                        ? $organizations->where('id', $selectedOrganizationId)->first()->name
+                                        : 'All' }}
                                     </span>
                                 </div>
                             </div>
                         </div>
                         <div class="p-5 flex items-center justify-center h-64">
                             <div class="text-center text-gray-500 dark:text-gray-400">
-                                <svg class="mx-auto h-12 w-12" fill="none" stroke="currentColor"
-                                    viewBox="0 0 24 24">
+                                <svg class="mx-auto h-12 w-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
                                         d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
                                 </svg>

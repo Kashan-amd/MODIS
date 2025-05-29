@@ -135,17 +135,12 @@ new class extends Component {
                     <flux:icon name="currency-dollar" class="h-10 w-10" />
                     <h1 class="text-2xl md:text-3xl font-extrabold text-slate-800 dark:text-slate-100">Transactions</h1>
                 </div>
-                <p class="text-slate-500 dark:text-slate-400 mt-1">View all financial transactions across the
-                    organization</p>
-                <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">This ledger displays all transactions created
-                    through the
-                    <a href="{{ route('accounts.journal-entries') }}"
-                        class="text-indigo-400 hover:text-indigo-300">Journal Entries</a> system.
-                </p>
+                <p class="text-slate-500 dark:text-slate-400 mt-1">View all financial transactions across
+                    organizations</p>
             </div>
 
             <!-- Right: Actions -->
-            <div class="grid grid-flow-col sm:auto-cols-max justify-start sm:justify-end gap-2">
+            {{-- <div class="grid grid-flow-col sm:auto-cols-max justify-start sm:justify-end gap-2">
                 <!-- Link to journal entries -->
                 <a href="{{ route('accounts.journal-entries') }}">
                     <flux:button variant="primary" class="flex items-center">
@@ -153,7 +148,7 @@ new class extends Component {
                         <span>Create New Journal Entry</span>
                     </flux:button>
                 </a>
-            </div>
+            </div> --}}
         </div>
         <!-- Stats overview -->
         {{-- <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -207,7 +202,7 @@ new class extends Component {
 
                     <flux:input type="text" wire:model.live.debounce.300ms="searchQuery"
                         class="block w-full rounded-lg border-0 focus:ring-2 focus:ring-indigo-500"
-                        placeholder="Search transactions by account, description, amount...">
+                        placeholder="Search ...">
                     </flux:input>
 
                 </div>
@@ -276,127 +271,127 @@ new class extends Component {
                     </thead>
                     <tbody class="bg-indigo-900/10 backdrop-blur-sm divide-y divide-indigo-200/10">
                         @forelse ($transactions as $transaction)
-                            <tr class="hover:bg-indigo-900/20 transition-colors duration-200">
-                                <td class="px-6 py-4 text-sm">
-                                    <div class="font-medium">
-                                        {{ $transaction->date
-                                            ? $transaction->date->format('M d, Y')
-                                            : ($transaction->transaction_date
-                                                ? $transaction->transaction_date->format('M d, Y')
-                                                : 'N/A') }}
-                                    </div>
-                                    <div class="text-xs text-slate-400">
-                                        @if ($transaction->organization)
-                                            {{ $transaction->organization->name }}
-                                        @elseif($transaction->fromOrganization && $transaction->toOrganization)
-                                            {{ $transaction->fromOrganization->name }} →
-                                            {{ $transaction->toOrganization->name }}
-                                        @endif
-                                    </div>
-                                </td>
-                                <td class="px-6 py-4 text-sm">
-                                    <div class="font-medium">
-                                        {{ $transaction->reference ?? 'TX' . str_pad($transaction->id, 6, '0', STR_PAD_LEFT) }}
-                                    </div>
-                                </td>
-                                <td class="px-6 py-4 text-sm">
-                                    <div class="font-medium">
-                                        {{ $transaction->description ??
-                                            ($transaction->fromOrganization && $transaction->toOrganization
-                                                ? 'Transfer: ' . $transaction->fromOrganization->name . ' to ' . $transaction->toOrganization->name
-                                                : 'N/A') }}
-                                    </div>
-                                    @if ($transaction->jobBooking)
-                                        <div class="text-xs text-slate-400">
-                                            Job: {{ $transaction->jobBooking->job_number }} -
-                                            {{ $transaction->jobBooking->title }}
-                                        </div>
+                        <tr class="hover:bg-indigo-900/20 transition-colors duration-200">
+                            <td class="px-6 py-4 text-sm">
+                                <div class="font-medium">
+                                    {{ $transaction->date
+                                    ? $transaction->date->format('M d, Y')
+                                    : ($transaction->transaction_date
+                                    ? $transaction->transaction_date->format('M d, Y')
+                                    : 'N/A') }}
+                                </div>
+                                <div class="text-xs text-slate-400">
+                                    @if ($transaction->organization)
+                                    {{ $transaction->organization->name }}
+                                    @elseif($transaction->fromOrganization && $transaction->toOrganization)
+                                    {{ $transaction->fromOrganization->name }} →
+                                    {{ $transaction->toOrganization->name }}
                                     @endif
-                                </td>
-                                <td class="px-6 py-4 text-sm">
-                                    <div class="font-bold">
-                                        <span class="text-slate-300">PKR</span>
-                                        {{ number_format($transaction->amount, 2) }}
-                                    </div>
-                                </td>
-                                <td class="px-6 py-4">
-                                    @if ($transaction->transaction_type === 'fund')
-                                        <span
-                                            class="px-3 py-1 text-xs leading-5 font-semibold rounded-full bg-emerald-500/20 text-emerald-200">
-                                            <flux:icon name="banknotes" class="inline-block h-3 w-3 mr-1" />
-                                            Fund Transfer
-                                        </span>
-                                    @elseif($transaction->transaction_type === 'loan')
-                                        <span
-                                            class="px-3 py-1 text-xs leading-5 font-semibold rounded-full bg-amber-500/20 text-amber-200">
-                                            <flux:icon name="arrow-trending-up" class="inline-block h-3 w-3 mr-1" />
-                                            Loan
-                                        </span>
-                                    @elseif($transaction->transaction_type === 'return')
-                                        <span
-                                            class="px-3 py-1 text-xs leading-5 font-semibold rounded-full bg-purple-500/20 text-purple-200">
-                                            <flux:icon name="arrow-path" class="inline-block h-3 w-3 mr-1" />
-                                            Return
-                                        </span>
-                                    @elseif($transaction->transaction_type === 'invoice')
-                                        <span
-                                            class="px-3 py-1 text-xs leading-5 font-semibold rounded-full bg-blue-500/20 text-blue-200">
-                                            <flux:icon name="document-text" class="inline-block h-3 w-3 mr-1" />
-                                            Invoice
-                                        </span>
-                                    @elseif($transaction->transaction_type === 'payment')
-                                        <span
-                                            class="px-3 py-1 text-xs leading-5 font-semibold rounded-full bg-green-500/20 text-green-200">
-                                            <flux:icon name="credit-card" class="inline-block h-3 w-3 mr-1" />
-                                            Payment
-                                        </span>
-                                    @elseif($transaction->transaction_type === 'expense')
-                                        <span
-                                            class="px-3 py-1 text-xs leading-5 font-semibold rounded-full bg-red-500/20 text-red-200">
-                                            <flux:icon name="receipt-percent" class="inline-block h-3 w-3 mr-1" />
-                                            Expense
-                                        </span>
-                                    @else
-                                        <span
-                                            class="px-3 py-1 text-xs leading-5 font-semibold rounded-full bg-indigo-500/20 text-indigo-200">
-                                            <flux:icon name="document-chart-bar" class="inline-block h-3 w-3 mr-1" />
-                                            {{ $transaction->transaction_type ? ucfirst($transaction->transaction_type) : 'Journal Entry' }}
-                                        </span>
-                                    @endif
-                                </td>
-                                <td class="px-6 py-4 text-right text-sm font-medium">
-                                    <div class="flex justify-end space-x-2">
-                                        <a href="{{ route('accounts.journal-entries') }}?transaction_id={{ $transaction->id }}"
-                                            class="flex items-center">
-                                            <flux:button variant="primary" size="xs" class="flex items-center">
-                                                <flux:icon name="document-text" class="h-3 w-3 mr-1" />
-                                                <span>View Details</span>
-                                            </flux:button>
-                                        </a>
-                                    </div>
-                                </td>
-                            </tr>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 text-sm">
+                                <div class="font-medium">
+                                    {{ $transaction->reference ?? 'TX' . str_pad($transaction->id, 6, '0', STR_PAD_LEFT)
+                                    }}
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 text-sm">
+                                <div class="font-medium">
+                                    {{ $transaction->description ??
+                                    ($transaction->fromOrganization && $transaction->toOrganization
+                                    ? 'Transfer: ' . $transaction->fromOrganization->name . ' to ' .
+                                    $transaction->toOrganization->name
+                                    : 'N/A') }}
+                                </div>
+                                @if ($transaction->jobBooking)
+                                <div class="text-xs text-slate-400">
+                                    Job: {{ $transaction->jobBooking->job_number }} -
+                                    {{ $transaction->jobBooking->title }}
+                                </div>
+                                @endif
+                            </td>
+                            <td class="px-6 py-4 text-sm">
+                                <div class="font-bold">
+                                    <span class="text-slate-300">PKR</span>
+                                    {{ number_format($transaction->amount, 2) }}
+                                </div>
+                            </td>
+                            <td class="px-6 py-4">
+                                @if ($transaction->transaction_type === 'fund')
+                                <span
+                                    class="px-3 py-1 text-xs leading-5 font-semibold rounded-full bg-emerald-500/20 text-emerald-200">
+                                    <flux:icon name="banknotes" class="inline-block h-3 w-3 mr-1" />
+                                    Fund Transfer
+                                </span>
+                                @elseif($transaction->transaction_type === 'loan')
+                                <span
+                                    class="px-3 py-1 text-xs leading-5 font-semibold rounded-full bg-amber-500/20 text-amber-200">
+                                    <flux:icon name="arrow-trending-up" class="inline-block h-3 w-3 mr-1" />
+                                    Loan
+                                </span>
+                                @elseif($transaction->transaction_type === 'return')
+                                <span
+                                    class="px-3 py-1 text-xs leading-5 font-semibold rounded-full bg-purple-500/20 text-purple-200">
+                                    <flux:icon name="arrow-path" class="inline-block h-3 w-3 mr-1" />
+                                    Return
+                                </span>
+                                @elseif($transaction->transaction_type === 'invoice')
+                                <span
+                                    class="px-3 py-1 text-xs leading-5 font-semibold rounded-full bg-blue-500/20 text-blue-200">
+                                    <flux:icon name="document-text" class="inline-block h-3 w-3 mr-1" />
+                                    Invoice
+                                </span>
+                                @elseif($transaction->transaction_type === 'payment')
+                                <span
+                                    class="px-3 py-1 text-xs leading-5 font-semibold rounded-full bg-green-500/20 text-green-200">
+                                    <flux:icon name="credit-card" class="inline-block h-3 w-3 mr-1" />
+                                    Payment
+                                </span>
+                                @elseif($transaction->transaction_type === 'expense')
+                                <span
+                                    class="px-3 py-1 text-xs leading-5 font-semibold rounded-full bg-red-500/20 text-red-200">
+                                    <flux:icon name="receipt-percent" class="inline-block h-3 w-3 mr-1" />
+                                    Expense
+                                </span>
+                                @else
+                                <span
+                                    class="px-3 py-1 text-xs leading-5 font-semibold rounded-full bg-indigo-500/20 text-indigo-200">
+                                    <flux:icon name="document-chart-bar" class="inline-block h-3 w-3 mr-1" />
+                                    {{ $transaction->transaction_type ? ucfirst($transaction->transaction_type) :
+                                    'Journal Entry' }}
+                                </span>
+                                @endif
+                            </td>
+                            <td class="px-6 py-4 text-right text-sm font-medium">
+                                <div class="flex justify-end space-x-2">
+                                    <a href="{{ route('accounts.journal-entries') }}?transaction_id={{ $transaction->id }}"
+                                        class="flex items-center">
+                                        <flux:button variant="primary" size="xs" class="flex items-center">
+                                            <flux:icon name="document-text" class="h-3 w-3 mr-1" />
+                                            <span>View Details</span>
+                                        </flux:button>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
                         @empty
-                            <tr>
-                                <td colspan="6" class="px-6 py-12 text-center">
+                        <tr>
+                            <td colspan="6" class="px-6 py-12 text-center">
+                                <div
+                                    class="flex flex-col items-center justify-center p-6 bg-indigo-900/10 rounded-xl backdrop-blur-sm">
                                     <div
-                                        class="flex flex-col items-center justify-center p-6 bg-indigo-900/10 rounded-xl backdrop-blur-sm">
-                                        <div
-                                            class="w-20 h-20 rounded-full bg-indigo-900/20 flex items-center justify-center mb-4">
-                                            <flux:icon name="currency-dollar"
-                                                class="w-12 h-12 text-indigo-300 dark:text-indigo-400" />
-                                        </div>
-                                        <h3 class="text-xl font-medium text-slate-800 dark:text-slate-200">No
-                                            transactions found</h3>
-                                        <p class="mt-2 text-slate-500 dark:text-slate-400 max-w-sm">
-                                            All financial transactions are created through the Journal Entries system.
-                                            <a href="{{ route('accounts.journal-entries') }}"
-                                                class="text-indigo-400 hover:text-indigo-300">
-                                                Create your first journal entry</a> to get started.
-                                        </p>
+                                        class="w-20 h-20 rounded-full bg-indigo-900/20 flex items-center justify-center mb-4">
+                                        <flux:icon name="currency-dollar"
+                                            class="w-12 h-12 text-indigo-300 dark:text-indigo-400" />
                                     </div>
-                                </td>
-                            </tr>
+                                    <h3 class="text-xl font-medium text-slate-800 dark:text-slate-200">No
+                                        transactions found</h3>
+                                    <p class="mt-2 text-slate-500 dark:text-slate-400 max-w-sm">
+                                        All financial transactions are created through the Journal Entries system.
+                                    </p>
+                                </div>
+                            </td>
+                        </tr>
                         @endforelse
                     </tbody>
                 </table>
@@ -427,181 +422,178 @@ new class extends Component {
         </div> --}}
 
         @if ($showLedger)
-            <x-glass-card colorScheme="amber" class="mt-4">
-                <div class="overflow-x-auto rounded-lg">
-                    <table class="min-w-full divide-y divide-purple-200/20">
-                        <thead class="bg-gradient-to-r backdrop-blur-sm">
-                            <tr>
-                                <th scope="col"
-                                    class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">
-                                    Organization
-                                </th>
-                                <th scope="col"
-                                    class="px-6 py-4 text-center text-xs font-semibold uppercase tracking-wider">
-                                    Type
-                                </th>
-                                <th scope="col"
-                                    class="px-6 py-4 text-center text-xs font-semibold uppercase tracking-wider">
-                                    Debit (Sent)
-                                </th>
-                                <th scope="col"
-                                    class="px-6 py-4 text-center text-xs font-semibold uppercase tracking-wider">
-                                    Credit (Received)
-                                </th>
-                                <th scope="col"
-                                    class="px-6 py-4 text-center text-xs font-semibold uppercase tracking-wider">
-                                    Balance
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody class="backdrop-blur-sm divide-y divide-purple-200/10">
-                            @forelse ($ledgerData as $data)
-                                <!-- Fund row -->
-                                <tr class="hover:bg-zinc-900/20 transition-colors duration-200">
-                                    <td class="px-6 py-4 text-sm font-medium" rowspan="3">
-                                        {{ $data['organization']->name }}
+        <x-glass-card colorScheme="amber" class="mt-4">
+            <div class="overflow-x-auto rounded-lg">
+                <table class="min-w-full divide-y divide-purple-200/20">
+                    <thead class="bg-gradient-to-r backdrop-blur-sm">
+                        <tr>
+                            <th scope="col" class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">
+                                Organization
+                            </th>
+                            <th scope="col"
+                                class="px-6 py-4 text-center text-xs font-semibold uppercase tracking-wider">
+                                Type
+                            </th>
+                            <th scope="col"
+                                class="px-6 py-4 text-center text-xs font-semibold uppercase tracking-wider">
+                                Debit (Sent)
+                            </th>
+                            <th scope="col"
+                                class="px-6 py-4 text-center text-xs font-semibold uppercase tracking-wider">
+                                Credit (Received)
+                            </th>
+                            <th scope="col"
+                                class="px-6 py-4 text-center text-xs font-semibold uppercase tracking-wider">
+                                Balance
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody class="backdrop-blur-sm divide-y divide-purple-200/10">
+                        @forelse ($ledgerData as $data)
+                        <!-- Fund row -->
+                        <tr class="hover:bg-zinc-900/20 transition-colors duration-200">
+                            <td class="px-6 py-4 text-sm font-medium" rowspan="3">
+                                {{ $data['organization']->name }}
 
-                                        {{-- show organization opening balance also --}}
-                                        @if ($data['opening']['amount'] > 0)
-                                            <div class="text-xs text-slate-400">
-                                                Opening Balance: <br>
-                                                <flux:badge color="green" size="sm">PKR
-                                                    {{ number_format($data['opening']['amount'], 2) }}
-                                                </flux:badge>
-                                                ({{ $data['opening']['type'] === 'credit' ? 'Credit' : 'Debit' }})
-                                            </div>
-                                        @endif
-                                    </td>
-                                    <td class="px-6 py-3 text-sm text-center">
-                                        <span
-                                            class="px-3 py-1 text-xs leading-5 font-semibold rounded-full bg-emerald-500/20 text-emerald-200">
-                                            <flux:icon name="banknotes" class="inline-block h-3 w-3 mr-1" />
-                                            Fund
-                                        </span>
-                                    </td>
-                                    <td class="px-6 py-3 text-sm text-center">
-                                        <span class="font-semibold text-emerald-300">
-                                            PKR {{ number_format($data['sent']['fund'], 2) }}
-                                        </span>
-                                    </td>
-                                    <td class="px-6 py-3 text-sm text-center">
-                                        <span class="font-semibold text-emerald-300">
-                                            PKR {{ number_format($data['received']['fund'], 2) }}
-                                        </span>
-                                    </td>
-                                    <td class="px-6 py-3 text-sm text-center">
-                                        <span
-                                            class="font-semibold {{ $data['received']['fund'] - $data['sent']['fund'] >= 0 ? 'text-emerald-300' : 'text-red-400' }}">
-                                            PKR
-                                            {{ number_format($data['received']['fund'] - $data['sent']['fund'], 2) }}
-                                        </span>
-                                    </td>
-                                </tr>
+                                {{-- show organization opening balance also --}}
+                                @if ($data['opening']['amount'] > 0)
+                                <div class="text-xs text-slate-400">
+                                    Opening Balance: <br>
+                                    <flux:badge color="green" size="sm">PKR
+                                        {{ number_format($data['opening']['amount'], 2) }}
+                                    </flux:badge>
+                                    ({{ $data['opening']['type'] === 'credit' ? 'Credit' : 'Debit' }})
+                                </div>
+                                @endif
+                            </td>
+                            <td class="px-6 py-3 text-sm text-center">
+                                <span
+                                    class="px-3 py-1 text-xs leading-5 font-semibold rounded-full bg-emerald-500/20 text-emerald-200">
+                                    <flux:icon name="banknotes" class="inline-block h-3 w-3 mr-1" />
+                                    Fund
+                                </span>
+                            </td>
+                            <td class="px-6 py-3 text-sm text-center">
+                                <span class="font-semibold text-emerald-300">
+                                    PKR {{ number_format($data['sent']['fund'], 2) }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-3 text-sm text-center">
+                                <span class="font-semibold text-emerald-300">
+                                    PKR {{ number_format($data['received']['fund'], 2) }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-3 text-sm text-center">
+                                <span
+                                    class="font-semibold {{ $data['received']['fund'] - $data['sent']['fund'] >= 0 ? 'text-emerald-300' : 'text-red-400' }}">
+                                    PKR
+                                    {{ number_format($data['received']['fund'] - $data['sent']['fund'], 2) }}
+                                </span>
+                            </td>
+                        </tr>
 
-                                <!-- Loan row -->
-                                <tr class="hover:bg-zinc-900/20 transition-colors duration-200">
-                                    <td class="px-6 py-3 text-sm text-center">
-                                        <span
-                                            class="px-3 py-1 text-xs leading-5 font-semibold rounded-full bg-amber-500/20 text-amber-200">
-                                            <flux:icon name="arrow-trending-up" class="inline-block h-3 w-3 mr-1" />
-                                            Loan
-                                        </span>
-                                    </td>
-                                    <td class="px-6 py-3 text-sm text-center">
-                                        <span class="font-semibold text-amber-300">
-                                            PKR {{ number_format($data['sent']['loan'], 2) }}
-                                        </span>
-                                    </td>
-                                    <td class="px-6 py-3 text-sm text-center">
-                                        <span class="font-semibold text-amber-300">
-                                            PKR {{ number_format($data['received']['loan'], 2) }}
-                                        </span>
-                                    </td>
-                                    <td class="px-6 py-3 text-sm text-center">
-                                        <span
-                                            class="font-semibold {{ $data['received']['loan'] - $data['sent']['loan'] >= 0 ? 'text-emerald-300' : 'text-red-400' }}">
-                                            PKR
-                                            {{ number_format($data['received']['loan'] - $data['sent']['loan'], 2) }}
-                                        </span>
-                                    </td>
-                                </tr>
+                        <!-- Loan row -->
+                        <tr class="hover:bg-zinc-900/20 transition-colors duration-200">
+                            <td class="px-6 py-3 text-sm text-center">
+                                <span
+                                    class="px-3 py-1 text-xs leading-5 font-semibold rounded-full bg-amber-500/20 text-amber-200">
+                                    <flux:icon name="arrow-trending-up" class="inline-block h-3 w-3 mr-1" />
+                                    Loan
+                                </span>
+                            </td>
+                            <td class="px-6 py-3 text-sm text-center">
+                                <span class="font-semibold text-amber-300">
+                                    PKR {{ number_format($data['sent']['loan'], 2) }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-3 text-sm text-center">
+                                <span class="font-semibold text-amber-300">
+                                    PKR {{ number_format($data['received']['loan'], 2) }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-3 text-sm text-center">
+                                <span
+                                    class="font-semibold {{ $data['received']['loan'] - $data['sent']['loan'] >= 0 ? 'text-emerald-300' : 'text-red-400' }}">
+                                    PKR
+                                    {{ number_format($data['received']['loan'] - $data['sent']['loan'], 2) }}
+                                </span>
+                            </td>
+                        </tr>
 
-                                <!-- Return row -->
-                                <tr
-                                    class="hover:bg-zinc-900/20 transition-colors duration-200 border-b border-grey-200/10">
-                                    <td class="px-6 py-3 text-sm text-center">
-                                        <span
-                                            class="px-3 py-1 text-xs leading-5 font-semibold rounded-full bg-zinc-500/20">
-                                            <flux:icon name="arrow-path" class="inline-block h-3 w-3 mr-1" />
-                                            Return
-                                        </span>
-                                    </td>
-                                    <td class="px-6 py-3 text-sm text-center">
-                                        <span class="font-semibold text-purple-300">
-                                            PKR {{ number_format($data['sent']['return'], 2) }}
-                                        </span>
-                                    </td>
-                                    <td class="px-6 py-3 text-sm text-center">
-                                        <span class="font-semibold text-purple-300">
-                                            PKR {{ number_format($data['received']['return'], 2) }}
-                                        </span>
-                                    </td>
-                                    <td class="px-6 py-3 text-sm text-center">
-                                        <span
-                                            class="font-semibold {{ $data['received']['return'] - $data['sent']['return'] >= 0 ? 'text-emerald-300' : 'text-red-400' }}">
-                                            PKR
-                                            {{ number_format($data['received']['return'] - $data['sent']['return'], 2) }}
-                                        </span>
-                                    </td>
-                                </tr>
-                                <!-- Total row -->
-                                <tr class="bg-zinc-900 hover:bg-zinc-800 duration-200">
-                                    <td class="px-6 py-3 text-sm font-bold">
-                                        {{ $data['organization']->name }} Total
-                                    </td>
-                                    <td class="px-6 py-3 text-sm text-center font-bold">
-                                        All Types
-                                    </td>
-                                    <td class="px-6 py-3 text-sm text-center font-bold">
-                                        PKR {{ number_format($data['sent']['total'], 2) }}
-                                    </td>
-                                    <td class="px-6 py-3 text-sm text-center font-bold">
-                                        PKR {{ number_format($data['received']['total'], 2) }}
-                                    </td>
-                                    <td class="px-6 py-3 text-sm text-center">
-                                        <span
-                                            class="font-bold {{ $data['balance'] >= 0 ? 'text-emerald-300' : 'text-red-400' }}">
-                                            PKR {{ number_format($data['balance'], 2) }}
-                                        </span>
-                                    </td>
-                                </tr>
-                            @empty
-                                <tr>
-                                    <td colspan="5" class="px-6 py-8 text-center text-slate-400">
-                                        No organization data available
-                                    </td>
-                                </tr>
-                            @endforelse
-                        </tbody>
-                        <tfoot class="bg-gradient-to-r from-zinc-900/50 to-zinc-800/40 backdrop-blur-sm">
-                            <tr>
-                                <th scope="row" class="px-6 py-3 text-left text-sm font-bold" colspan="2">
-                                    Grand Total (All Organizations)
-                                </th>
-                                <td class="px-6 py-3 text-sm text-center font-bold">
-                                    PKR {{ number_format($totalFunds + $totalLoans + $totalReturns, 2) }}
-                                </td>
-                                <td class="px-6 py-3 text-sm text-center font-bold">
-                                    PKR {{ number_format($totalFunds + $totalLoans + $totalReturns, 2) }}
-                                </td>
-                                <td class="px-6 py-3 text-sm text-center font-bold">
-                                    PKR 0.00
-                                </td>
-                            </tr>
-                        </tfoot>
-                    </table>
-                </div>
-            </x-glass-card>
+                        <!-- Return row -->
+                        <tr class="hover:bg-zinc-900/20 transition-colors duration-200 border-b border-grey-200/10">
+                            <td class="px-6 py-3 text-sm text-center">
+                                <span class="px-3 py-1 text-xs leading-5 font-semibold rounded-full bg-zinc-500/20">
+                                    <flux:icon name="arrow-path" class="inline-block h-3 w-3 mr-1" />
+                                    Return
+                                </span>
+                            </td>
+                            <td class="px-6 py-3 text-sm text-center">
+                                <span class="font-semibold text-purple-300">
+                                    PKR {{ number_format($data['sent']['return'], 2) }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-3 text-sm text-center">
+                                <span class="font-semibold text-purple-300">
+                                    PKR {{ number_format($data['received']['return'], 2) }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-3 text-sm text-center">
+                                <span
+                                    class="font-semibold {{ $data['received']['return'] - $data['sent']['return'] >= 0 ? 'text-emerald-300' : 'text-red-400' }}">
+                                    PKR
+                                    {{ number_format($data['received']['return'] - $data['sent']['return'], 2) }}
+                                </span>
+                            </td>
+                        </tr>
+                        <!-- Total row -->
+                        <tr class="bg-zinc-900 hover:bg-zinc-800 duration-200">
+                            <td class="px-6 py-3 text-sm font-bold">
+                                {{ $data['organization']->name }} Total
+                            </td>
+                            <td class="px-6 py-3 text-sm text-center font-bold">
+                                All Types
+                            </td>
+                            <td class="px-6 py-3 text-sm text-center font-bold">
+                                PKR {{ number_format($data['sent']['total'], 2) }}
+                            </td>
+                            <td class="px-6 py-3 text-sm text-center font-bold">
+                                PKR {{ number_format($data['received']['total'], 2) }}
+                            </td>
+                            <td class="px-6 py-3 text-sm text-center">
+                                <span
+                                    class="font-bold {{ $data['balance'] >= 0 ? 'text-emerald-300' : 'text-red-400' }}">
+                                    PKR {{ number_format($data['balance'], 2) }}
+                                </span>
+                            </td>
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="5" class="px-6 py-8 text-center text-slate-400">
+                                No organization data available
+                            </td>
+                        </tr>
+                        @endforelse
+                    </tbody>
+                    <tfoot class="bg-gradient-to-r from-zinc-900/50 to-zinc-800/40 backdrop-blur-sm">
+                        <tr>
+                            <th scope="row" class="px-6 py-3 text-left text-sm font-bold" colspan="2">
+                                Grand Total (All Organizations)
+                            </th>
+                            <td class="px-6 py-3 text-sm text-center font-bold">
+                                PKR {{ number_format($totalFunds + $totalLoans + $totalReturns, 2) }}
+                            </td>
+                            <td class="px-6 py-3 text-sm text-center font-bold">
+                                PKR {{ number_format($totalFunds + $totalLoans + $totalReturns, 2) }}
+                            </td>
+                            <td class="px-6 py-3 text-sm text-center font-bold">
+                                PKR 0.00
+                            </td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </x-glass-card>
         @endif
 
     </div>

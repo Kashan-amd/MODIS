@@ -349,8 +349,8 @@ new class extends Component {
                             class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
                             <flux:select.option value="">Select Organization</flux:select.option>
                             @foreach ($organizations as $organization)
-                                <flux:select.option value="{{ $organization->id }}">{{ $organization->name }}
-                                </flux:select.option>
+                            <flux:select.option value="{{ $organization->id }}">{{ $organization->name }}
+                            </flux:select.option>
                             @endforeach
                         </flux:select>
                     </div>
@@ -360,7 +360,7 @@ new class extends Component {
                         <flux:select id="report_type" wire:model="report_type"
                             class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
                             @foreach ($reportTypes as $value => $label)
-                                <flux:select.option value="{{ $value }}">{{ $label }}</flux:select.option>
+                            <flux:select.option value="{{ $value }}">{{ $label }}</flux:select.option>
                             @endforeach
                         </flux:select>
                     </div>
@@ -390,389 +390,385 @@ new class extends Component {
 
         <!-- Report Results -->
         @if ($report_data)
-            <x-glass-card colorScheme="indigo" class="backdrop-blur-sm">
-                <!-- Report Header -->
-                <div class="text-center mb-6 border-b border-indigo-200/20 pb-4">
-                    <h2 class="text-2xl font-bold text-indigo-100">{{ $report_data['title'] }}</h2>
-                    @if (isset($report_data['period']))
-                        <p class="text-indigo-300 mt-1">{{ $report_data['period'] }}</p>
-                    @elseif(isset($report_data['as_of']))
-                        <p class="text-indigo-300 mt-1">As of {{ $report_data['as_of'] }}</p>
-                    @endif
+        <x-glass-card colorScheme="indigo" class="backdrop-blur-sm">
+            <!-- Report Header -->
+            <div class="text-center mb-6 border-b border-indigo-200/20 pb-4">
+                <h2 class="text-2xl font-bold text-indigo-100">{{ $report_data['title'] }}</h2>
+                @if (isset($report_data['period']))
+                <p class="text-indigo-300 mt-1">{{ $report_data['period'] }}</p>
+                @elseif(isset($report_data['as_of']))
+                <p class="text-indigo-300 mt-1">As of {{ $report_data['as_of'] }}</p>
+                @endif
+            </div>
+
+            <!-- Income Statement -->
+            @if ($report_type === 'income-statement')
+            <div class="space-y-6">
+                <!-- Income Section -->
+                <div>
+                    <h3 class="text-lg font-semibold text-indigo-100 mb-2">Income</h3>
+                    <div class="bg-indigo-900/20 rounded-lg">
+                        <table class="min-w-full divide-y divide-indigo-200/20">
+                            <thead class="bg-indigo-900/30">
+                                <tr>
+                                    <th scope="col"
+                                        class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-indigo-200">
+                                        Account</th>
+                                    <th scope="col"
+                                        class="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-indigo-200">
+                                        Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-indigo-200/10">
+                                @forelse($report_data['income'] as $item)
+                                <tr class="hover:bg-indigo-900/20">
+                                    <td class="px-6 py-4 text-sm text-indigo-300">
+                                        {{ $item['account_number'] }} - {{ $item['name'] }}</td>
+                                    <td class="px-6 py-4 text-sm text-right text-indigo-300">
+                                        {{ number_format($item['amount'], 2) }}</td>
+                                </tr>
+                                @empty
+                                <tr>
+                                    <td colspan="2" class="px-6 py-4 text-sm text-center text-indigo-300">No income
+                                        accounts found.</td>
+                                </tr>
+                                @endforelse
+                                <tr class="bg-indigo-900/40">
+                                    <td class="px-6 py-3 text-sm font-semibold text-indigo-100">Total Income
+                                    </td>
+                                    <td class="px-6 py-3 text-sm font-semibold text-right text-indigo-100">
+                                        {{ number_format($report_data['total_income'], 2) }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
 
-                <!-- Income Statement -->
-                @if ($report_type === 'income-statement')
-                    <div class="space-y-6">
-                        <!-- Income Section -->
-                        <div>
-                            <h3 class="text-lg font-semibold text-indigo-100 mb-2">Income</h3>
-                            <div class="bg-indigo-900/20 rounded-lg">
-                                <table class="min-w-full divide-y divide-indigo-200/20">
-                                    <thead class="bg-indigo-900/30">
-                                        <tr>
-                                            <th scope="col"
-                                                class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-indigo-200">
-                                                Account</th>
-                                            <th scope="col"
-                                                class="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-indigo-200">
-                                                Amount</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody class="divide-y divide-indigo-200/10">
-                                        @forelse($report_data['income'] as $item)
-                                            <tr class="hover:bg-indigo-900/20">
-                                                <td class="px-6 py-4 text-sm text-indigo-300">
-                                                    {{ $item['account_number'] }} - {{ $item['name'] }}</td>
-                                                <td class="px-6 py-4 text-sm text-right text-indigo-300">
-                                                    {{ number_format($item['amount'], 2) }}</td>
-                                            </tr>
-                                        @empty
-                                            <tr>
-                                                <td colspan="2"
-                                                    class="px-6 py-4 text-sm text-center text-indigo-300">No income
-                                                    accounts found.</td>
-                                            </tr>
-                                        @endforelse
-                                        <tr class="bg-indigo-900/40">
-                                            <td class="px-6 py-3 text-sm font-semibold text-indigo-100">Total Income
-                                            </td>
-                                            <td class="px-6 py-3 text-sm font-semibold text-right text-indigo-100">
-                                                {{ number_format($report_data['total_income'], 2) }}</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-
-                        <!-- Expenses Section -->
-                        <div>
-                            <h3 class="text-lg font-semibold text-indigo-100 mb-2">Expenses</h3>
-                            <div class="bg-indigo-900/20 rounded-lg">
-                                <table class="min-w-full divide-y divide-indigo-200/20">
-                                    <thead class="bg-indigo-900/30">
-                                        <tr>
-                                            <th scope="col"
-                                                class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-indigo-200">
-                                                Account</th>
-                                            <th scope="col"
-                                                class="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-indigo-200">
-                                                Amount</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody class="divide-y divide-indigo-200/10">
-                                        @forelse($report_data['expenses'] as $item)
-                                            <tr class="hover:bg-indigo-900/20">
-                                                <td class="px-6 py-4 text-sm text-indigo-300">
-                                                    {{ $item['account_number'] }} - {{ $item['name'] }}</td>
-                                                <td class="px-6 py-4 text-sm text-right text-indigo-300">
-                                                    {{ number_format($item['amount'], 2) }}</td>
-                                            </tr>
-                                        @empty
-                                            <tr>
-                                                <td colspan="2"
-                                                    class="px-6 py-4 text-sm text-center text-indigo-300">No expense
-                                                    accounts found.</td>
-                                            </tr>
-                                        @endforelse
-                                        <tr class="bg-indigo-900/40">
-                                            <td class="px-6 py-3 text-sm font-semibold text-indigo-100">Total Expenses
-                                            </td>
-                                            <td class="px-6 py-3 text-sm font-semibold text-right text-indigo-100">
-                                                {{ number_format($report_data['total_expenses'], 2) }}</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-
-                        <!-- Net Income -->
-                        <div class="bg-indigo-900/30 p-4 rounded-lg">
-                            <div class="flex justify-between items-center">
-                                <h3 class="text-lg font-bold text-indigo-100">Net Income</h3>
-                                <span
-                                    class="text-xl font-bold {{ $report_data['net_income'] >= 0 ? 'text-emerald-300' : 'text-red-300' }}">
-                                    {{ number_format($report_data['net_income'], 2) }}
-                                </span>
-                            </div>
-                        </div>
+                <!-- Expenses Section -->
+                <div>
+                    <h3 class="text-lg font-semibold text-indigo-100 mb-2">Expenses</h3>
+                    <div class="bg-indigo-900/20 rounded-lg">
+                        <table class="min-w-full divide-y divide-indigo-200/20">
+                            <thead class="bg-indigo-900/30">
+                                <tr>
+                                    <th scope="col"
+                                        class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-indigo-200">
+                                        Account</th>
+                                    <th scope="col"
+                                        class="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-indigo-200">
+                                        Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-indigo-200/10">
+                                @forelse($report_data['expenses'] as $item)
+                                <tr class="hover:bg-indigo-900/20">
+                                    <td class="px-6 py-4 text-sm text-indigo-300">
+                                        {{ $item['account_number'] }} - {{ $item['name'] }}</td>
+                                    <td class="px-6 py-4 text-sm text-right text-indigo-300">
+                                        {{ number_format($item['amount'], 2) }}</td>
+                                </tr>
+                                @empty
+                                <tr>
+                                    <td colspan="2" class="px-6 py-4 text-sm text-center text-indigo-300">No expense
+                                        accounts found.</td>
+                                </tr>
+                                @endforelse
+                                <tr class="bg-indigo-900/40">
+                                    <td class="px-6 py-3 text-sm font-semibold text-indigo-100">Total Expenses
+                                    </td>
+                                    <td class="px-6 py-3 text-sm font-semibold text-right text-indigo-100">
+                                        {{ number_format($report_data['total_expenses'], 2) }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
-                    <!-- Balance Sheet -->
-                @elseif($report_type === 'balance-sheet')
-                    <div class="space-y-6">
-                        <!-- Assets Section -->
-                        <div>
-                            <h3 class="text-lg font-semibold text-indigo-100 mb-2">Assets</h3>
-                            <div class="bg-indigo-900/20 rounded-lg">
-                                <table class="min-w-full divide-y divide-indigo-200/20">
-                                    <thead class="bg-indigo-900/30">
-                                        <tr>
-                                            <th scope="col"
-                                                class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-indigo-200">
-                                                Account</th>
-                                            <th scope="col"
-                                                class="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-indigo-200">
-                                                Balance</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody class="divide-y divide-indigo-200/10">
-                                        @forelse($report_data['assets'] as $item)
-                                            <tr class="hover:bg-indigo-900/20">
-                                                <td class="px-6 py-4 text-sm text-indigo-300">
-                                                    {{ $item['account_number'] }} - {{ $item['name'] }}</td>
-                                                <td class="px-6 py-4 text-sm text-right text-indigo-300">
-                                                    {{ number_format($item['balance'], 2) }}</td>
-                                            </tr>
-                                        @empty
-                                            <tr>
-                                                <td colspan="2"
-                                                    class="px-6 py-4 text-sm text-center text-indigo-300">No asset
-                                                    accounts found.</td>
-                                            </tr>
-                                        @endforelse
-                                        <tr class="bg-indigo-900/40">
-                                            <td class="px-6 py-3 text-sm font-semibold text-indigo-100">Total Assets
-                                            </td>
-                                            <td class="px-6 py-3 text-sm font-semibold text-right text-indigo-100">
-                                                {{ number_format($report_data['total_assets'], 2) }}</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
+                </div>
 
-                        <!-- Liabilities Section -->
-                        <div>
-                            <h3 class="text-lg font-semibold text-indigo-100 mb-2">Liabilities</h3>
-                            <div class="bg-indigo-900/20 rounded-lg">
-                                <table class="min-w-full divide-y divide-indigo-200/20">
-                                    <thead class="bg-indigo-900/30">
-                                        <tr>
-                                            <th scope="col"
-                                                class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-indigo-200">
-                                                Account</th>
-                                            <th scope="col"
-                                                class="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-indigo-200">
-                                                Balance</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody class="divide-y divide-indigo-200/10">
-                                        @forelse($report_data['liabilities'] as $item)
-                                            <tr class="hover:bg-indigo-900/20">
-                                                <td class="px-6 py-4 text-sm text-indigo-300">
-                                                    {{ $item['account_number'] }} - {{ $item['name'] }}</td>
-                                                <td class="px-6 py-4 text-sm text-right text-indigo-300">
-                                                    {{ number_format($item['balance'], 2) }}</td>
-                                            </tr>
-                                        @empty
-                                            <tr>
-                                                <td colspan="2"
-                                                    class="px-6 py-4 text-sm text-center text-indigo-300">No liability
-                                                    accounts found.</td>
-                                            </tr>
-                                        @endforelse
-                                        <tr class="bg-indigo-900/40">
-                                            <td class="px-6 py-3 text-sm font-semibold text-indigo-100">Total
-                                                Liabilities</td>
-                                            <td class="px-6 py-3 text-sm font-semibold text-right text-indigo-100">
-                                                {{ number_format($report_data['total_liabilities'], 2) }}</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-
-                        <!-- Equity Section -->
-                        <div>
-                            <h3 class="text-lg font-semibold text-indigo-100 mb-2">Equity</h3>
-                            <div class="bg-indigo-900/20 rounded-lg">
-                                <table class="min-w-full divide-y divide-indigo-200/20">
-                                    <thead class="bg-indigo-900/30">
-                                        <tr>
-                                            <th scope="col"
-                                                class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-indigo-200">
-                                                Account</th>
-                                            <th scope="col"
-                                                class="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-indigo-200">
-                                                Balance</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody class="divide-y divide-indigo-200/10">
-                                        @forelse($report_data['equity'] as $item)
-                                            <tr class="hover:bg-indigo-900/20">
-                                                <td class="px-6 py-4 text-sm text-indigo-300">
-                                                    {{ $item['account_number'] }} - {{ $item['name'] }}</td>
-                                                <td class="px-6 py-4 text-sm text-right text-indigo-300">
-                                                    {{ number_format($item['balance'], 2) }}</td>
-                                            </tr>
-                                        @empty
-                                            <tr>
-                                                <td colspan="2"
-                                                    class="px-6 py-4 text-sm text-center text-indigo-300">No equity
-                                                    accounts found.</td>
-                                            </tr>
-                                        @endforelse
-                                        <tr class="bg-indigo-900/40">
-                                            <td class="px-6 py-3 text-sm font-semibold text-indigo-100">Total Equity
-                                            </td>
-                                            <td class="px-6 py-3 text-sm font-semibold text-right text-indigo-100">
-                                                {{ number_format($report_data['total_equity'], 2) }}</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-
-                        <!-- Total Liabilities and Equity -->
-                        <div class="bg-indigo-900/30 p-4 rounded-lg">
-                            <div class="flex justify-between items-center">
-                                <h3 class="text-lg font-bold text-indigo-100">Total Liabilities and Equity</h3>
-                                <span class="text-xl font-bold text-indigo-100">
-                                    {{ number_format($report_data['total_liabilities_and_equity'], 2) }}</span>
-                            </div>
-                        </div>
+                <!-- Net Income -->
+                <div class="bg-indigo-900/30 p-4 rounded-lg">
+                    <div class="flex justify-between items-center">
+                        <h3 class="text-lg font-bold text-indigo-100">Net Income</h3>
+                        <span
+                            class="text-xl font-bold {{ $report_data['net_income'] >= 0 ? 'text-emerald-300' : 'text-red-300' }}">
+                            {{ number_format($report_data['net_income'], 2) }}
+                        </span>
                     </div>
-
-                    <!-- Cash Flow Statement -->
-                @elseif($report_type === 'cash-flow')
-                    <div class="space-y-6">
-                        @if (isset($report_data['error']))
-                            <div class="bg-red-900/20 text-red-300 p-4 rounded-lg">
-                                {{ $report_data['error'] }}
-                            </div>
-                        @else
-                            <!-- Cash Flow Table -->
-                            <div class="bg-indigo-900/20 rounded-lg">
-                                <table class="min-w-full divide-y divide-indigo-200/20">
-                                    <thead class="bg-indigo-900/30">
-                                        <tr>
-                                            <th scope="col"
-                                                class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-indigo-200">
-                                                Account</th>
-                                            <th scope="col"
-                                                class="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-indigo-200">
-                                                Starting Balance</th>
-                                            <th scope="col"
-                                                class="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-indigo-200">
-                                                Ending Balance</th>
-                                            <th scope="col"
-                                                class="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-indigo-200">
-                                                Net Change</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody class="divide-y divide-indigo-200/10">
-                                        @foreach ($report_data['cash_flow_items'] as $item)
-                                            <tr class="hover:bg-indigo-900/20">
-                                                <td class="px-6 py-4 text-sm text-indigo-300">
-                                                    {{ $item['account_number'] }} - {{ $item['name'] }}</td>
-                                                <td class="px-6 py-4 text-sm text-right text-indigo-300">
-                                                    {{ number_format($item['starting_balance'], 2) }}</td>
-                                                <td class="px-6 py-4 text-sm text-right text-indigo-300">
-                                                    {{ number_format($item['ending_balance'], 2) }}</td>
-                                                <td
-                                                    class="px-6 py-4 text-sm text-right {{ $item['net_change'] >= 0 ? 'text-emerald-300' : 'text-red-300' }}">
-                                                    {{ number_format($item['net_change'], 2) }}
-                                                </td>
-                                            </tr>
-                                        @endforeach
-                                    </tbody>
-                                </table>
-                            </div>
-
-                            <!-- Total Cash Flow -->
-                            <div class="bg-indigo-900/30 p-4 rounded-lg">
-                                <div class="flex justify-between items-center">
-                                    <h3 class="text-lg font-bold text-indigo-100">Net Cash Flow</h3>
-                                    <span
-                                        class="text-xl font-bold {{ $report_data['total_cash_flow'] >= 0 ? 'text-emerald-300' : 'text-red-300' }}">
-                                        {{ number_format($report_data['total_cash_flow'], 2) }}
-                                    </span>
-                                </div>
-                            </div>
-                        @endif
+                </div>
+            </div>
+            <!-- Balance Sheet -->
+            @elseif($report_type === 'balance-sheet')
+            <div class="space-y-6">
+                <!-- Assets Section -->
+                <div>
+                    <h3 class="text-lg font-semibold text-indigo-100 mb-2">Assets</h3>
+                    <div class="bg-indigo-900/20 rounded-lg">
+                        <table class="min-w-full divide-y divide-indigo-200/20">
+                            <thead class="bg-indigo-900/30">
+                                <tr>
+                                    <th scope="col"
+                                        class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-indigo-200">
+                                        Account</th>
+                                    <th scope="col"
+                                        class="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-indigo-200">
+                                        Balance</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-indigo-200/10">
+                                @forelse($report_data['assets'] as $item)
+                                <tr class="hover:bg-indigo-900/20">
+                                    <td class="px-6 py-4 text-sm text-indigo-300">
+                                        {{ $item['account_number'] }} - {{ $item['name'] }}</td>
+                                    <td class="px-6 py-4 text-sm text-right text-indigo-300">
+                                        {{ number_format($item['balance'], 2) }}</td>
+                                </tr>
+                                @empty
+                                <tr>
+                                    <td colspan="2" class="px-6 py-4 text-sm text-center text-indigo-300">No asset
+                                        accounts found.</td>
+                                </tr>
+                                @endforelse
+                                <tr class="bg-indigo-900/40">
+                                    <td class="px-6 py-3 text-sm font-semibold text-indigo-100">Total Assets
+                                    </td>
+                                    <td class="px-6 py-3 text-sm font-semibold text-right text-indigo-100">
+                                        {{ number_format($report_data['total_assets'], 2) }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
+                </div>
 
-                    <!-- Trial Balance -->
-                @elseif($report_type === 'trial-balance')
-                    <div class="space-y-6">
-                        <!-- Trial Balance Table -->
-                        <div class="bg-indigo-900/20 rounded-lg">
-                            <table class="min-w-full divide-y divide-indigo-200/20">
-                                <thead class="bg-indigo-900/30">
-                                    <tr>
-                                        <th scope="col"
-                                            class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-indigo-200">
-                                            Account</th>
-                                        <th scope="col"
-                                            class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-indigo-200">
-                                            Type</th>
-                                        <th scope="col"
-                                            class="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-indigo-200">
-                                            Opening Balance</th>
-                                        <th scope="col"
-                                            class="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-indigo-200">
-                                            Debit</th>
-                                        <th scope="col"
-                                            class="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-indigo-200">
-                                            Credit</th>
-                                        <th scope="col"
-                                            class="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-indigo-200">
-                                            Closing Balance</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="divide-y divide-indigo-200/10">
-                                    @foreach ($report_data['accounts'] as $item)
-                                        <tr class="hover:bg-indigo-900/20">
-                                            <td class="px-6 py-4 text-sm text-indigo-300">
-                                                {{ $item['account_number'] }} - {{ $item['name'] }}</td>
-                                            <td class="px-6 py-4 text-sm text-indigo-300 capitalize">
-                                                {{ $item['type'] }}</td>
-                                            <td class="px-6 py-4 text-sm text-right text-indigo-300">
-                                                @if (isset($item['opening_balance']))
-                                                    {{ $this->formatAmount($item['opening_balance']) }}
-                                                @endif
-                                            </td>
-                                            <td class="px-6 py-4 text-sm text-right text-indigo-300">
-                                                @if ($item['debit'] > 0)
-                                                    {{ $this->formatAmount($item['debit']) }}
-                                                @endif
-                                            </td>
-                                            <td class="px-6 py-4 text-sm text-right text-indigo-300">
-                                                @if ($item['credit'] > 0)
-                                                    {{ $this->formatAmount($item['credit']) }}
-                                                @endif
-                                            </td>
-                                            <td class="px-6 py-4 text-sm text-right text-indigo-300">
-                                                @if (isset($item['closing_balance']))
-                                                    {{ $this->formatAmount($item['closing_balance']) }}
-                                                @endif
-                                            </td>
-                                        </tr>
-                                    @endforeach
-                                    <tr class="bg-indigo-900/40">
-                                        <td colspan="2" class="px-6 py-3 text-sm font-semibold text-indigo-100">
-                                            Totals</td>
-                                        <td class="px-6 py-3 text-sm font-semibold text-right text-indigo-100">
-                                            @if (isset($report_data['total_opening_balance']))
-                                                {{ $this->formatAmount($report_data['total_opening_balance']) }}
-                                            @endif
-                                        </td>
-                                        <td class="px-6 py-3 text-sm font-semibold text-right text-indigo-100">
-                                            {{ $this->formatAmount($report_data['total_debits']) }}</td>
-                                        <td class="px-6 py-3 text-sm font-semibold text-right text-indigo-100">
-                                            {{ $this->formatAmount($report_data['total_credits']) }}</td>
-                                        <td class="px-6 py-3 text-sm font-semibold text-right text-indigo-100">
-                                            @if (isset($report_data['total_closing_balance']))
-                                                {{ $this->formatAmount($report_data['total_closing_balance']) }}
-                                            @endif
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
+                <!-- Liabilities Section -->
+                <div>
+                    <h3 class="text-lg font-semibold text-indigo-100 mb-2">Liabilities</h3>
+                    <div class="bg-indigo-900/20 rounded-lg">
+                        <table class="min-w-full divide-y divide-indigo-200/20">
+                            <thead class="bg-indigo-900/30">
+                                <tr>
+                                    <th scope="col"
+                                        class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-indigo-200">
+                                        Account</th>
+                                    <th scope="col"
+                                        class="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-indigo-200">
+                                        Balance</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-indigo-200/10">
+                                @forelse($report_data['liabilities'] as $item)
+                                <tr class="hover:bg-indigo-900/20">
+                                    <td class="px-6 py-4 text-sm text-indigo-300">
+                                        {{ $item['account_number'] }} - {{ $item['name'] }}</td>
+                                    <td class="px-6 py-4 text-sm text-right text-indigo-300">
+                                        {{ number_format($item['balance'], 2) }}</td>
+                                </tr>
+                                @empty
+                                <tr>
+                                    <td colspan="2" class="px-6 py-4 text-sm text-center text-indigo-300">No liability
+                                        accounts found.</td>
+                                </tr>
+                                @endforelse
+                                <tr class="bg-indigo-900/40">
+                                    <td class="px-6 py-3 text-sm font-semibold text-indigo-100">Total
+                                        Liabilities</td>
+                                    <td class="px-6 py-3 text-sm font-semibold text-right text-indigo-100">
+                                        {{ number_format($report_data['total_liabilities'], 2) }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
+                </div>
+
+                <!-- Equity Section -->
+                <div>
+                    <h3 class="text-lg font-semibold text-indigo-100 mb-2">Equity</h3>
+                    <div class="bg-indigo-900/20 rounded-lg">
+                        <table class="min-w-full divide-y divide-indigo-200/20">
+                            <thead class="bg-indigo-900/30">
+                                <tr>
+                                    <th scope="col"
+                                        class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-indigo-200">
+                                        Account</th>
+                                    <th scope="col"
+                                        class="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-indigo-200">
+                                        Balance</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-indigo-200/10">
+                                @forelse($report_data['equity'] as $item)
+                                <tr class="hover:bg-indigo-900/20">
+                                    <td class="px-6 py-4 text-sm text-indigo-300">
+                                        {{ $item['account_number'] }} - {{ $item['name'] }}</td>
+                                    <td class="px-6 py-4 text-sm text-right text-indigo-300">
+                                        {{ number_format($item['balance'], 2) }}</td>
+                                </tr>
+                                @empty
+                                <tr>
+                                    <td colspan="2" class="px-6 py-4 text-sm text-center text-indigo-300">No equity
+                                        accounts found.</td>
+                                </tr>
+                                @endforelse
+                                <tr class="bg-indigo-900/40">
+                                    <td class="px-6 py-3 text-sm font-semibold text-indigo-100">Total Equity
+                                    </td>
+                                    <td class="px-6 py-3 text-sm font-semibold text-right text-indigo-100">
+                                        {{ number_format($report_data['total_equity'], 2) }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Total Liabilities and Equity -->
+                <div class="bg-indigo-900/30 p-4 rounded-lg">
+                    <div class="flex justify-between items-center">
+                        {{-- <h3 class="text-lg font-bold text-indigo-100">Total Liabilities and Equity</h3> --}}
+                        <h3 class="text-lg font-bold text-indigo-100">Total</h3>
+                        <span class="text-xl font-bold text-indigo-100">
+                            {{ number_format($report_data['total_liabilities_and_equity'], 2) }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cash Flow Statement -->
+            @elseif($report_type === 'cash-flow')
+            <div class="space-y-6">
+                @if (isset($report_data['error']))
+                <div class="bg-red-900/20 text-red-300 p-4 rounded-lg">
+                    {{ $report_data['error'] }}
+                </div>
+                @else
+                <!-- Cash Flow Table -->
+                <div class="bg-indigo-900/20 rounded-lg">
+                    <table class="min-w-full divide-y divide-indigo-200/20">
+                        <thead class="bg-indigo-900/30">
+                            <tr>
+                                <th scope="col"
+                                    class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-indigo-200">
+                                    Account</th>
+                                <th scope="col"
+                                    class="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-indigo-200">
+                                    Starting Balance</th>
+                                <th scope="col"
+                                    class="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-indigo-200">
+                                    Ending Balance</th>
+                                <th scope="col"
+                                    class="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-indigo-200">
+                                    Net Change</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-indigo-200/10">
+                            @foreach ($report_data['cash_flow_items'] as $item)
+                            <tr class="hover:bg-indigo-900/20">
+                                <td class="px-6 py-4 text-sm text-indigo-300">
+                                    {{ $item['account_number'] }} - {{ $item['name'] }}</td>
+                                <td class="px-6 py-4 text-sm text-right text-indigo-300">
+                                    {{ number_format($item['starting_balance'], 2) }}</td>
+                                <td class="px-6 py-4 text-sm text-right text-indigo-300">
+                                    {{ number_format($item['ending_balance'], 2) }}</td>
+                                <td
+                                    class="px-6 py-4 text-sm text-right {{ $item['net_change'] >= 0 ? 'text-emerald-300' : 'text-red-300' }}">
+                                    {{ number_format($item['net_change'], 2) }}
+                                </td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Total Cash Flow -->
+                <div class="bg-indigo-900/30 p-4 rounded-lg">
+                    <div class="flex justify-between items-center">
+                        <h3 class="text-lg font-bold text-indigo-100">Net Cash Flow</h3>
+                        <span
+                            class="text-xl font-bold {{ $report_data['total_cash_flow'] >= 0 ? 'text-emerald-300' : 'text-red-300' }}">
+                            {{ number_format($report_data['total_cash_flow'], 2) }}
+                        </span>
+                    </div>
+                </div>
                 @endif
-            </x-glass-card>
+            </div>
+
+            <!-- Trial Balance -->
+            @elseif($report_type === 'trial-balance')
+            <div class="space-y-6">
+                <!-- Trial Balance Table -->
+                <div class="bg-indigo-900/20 rounded-lg">
+                    <table class="min-w-full divide-y divide-indigo-200/20">
+                        <thead class="bg-indigo-900/30">
+                            <tr>
+                                <th scope="col"
+                                    class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-indigo-200">
+                                    Account</th>
+                                <th scope="col"
+                                    class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-indigo-200">
+                                    Type</th>
+                                <th scope="col"
+                                    class="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-indigo-200">
+                                    Opening Balance</th>
+                                <th scope="col"
+                                    class="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-indigo-200">
+                                    Debit</th>
+                                <th scope="col"
+                                    class="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-indigo-200">
+                                    Credit</th>
+                                <th scope="col"
+                                    class="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-indigo-200">
+                                    Closing Balance</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-indigo-200/10">
+                            @foreach ($report_data['accounts'] as $item)
+                            <tr class="hover:bg-indigo-900/20">
+                                <td class="px-6 py-4 text-sm text-indigo-300">
+                                    {{ $item['account_number'] }} - {{ $item['name'] }}</td>
+                                <td class="px-6 py-4 text-sm text-indigo-300 capitalize">
+                                    {{ $item['type'] }}</td>
+                                <td class="px-6 py-4 text-sm text-right text-indigo-300">
+                                    @if (isset($item['opening_balance']))
+                                    {{ $this->formatAmount($item['opening_balance']) }}
+                                    @endif
+                                </td>
+                                <td class="px-6 py-4 text-sm text-right text-indigo-300">
+                                    @if ($item['debit'] > 0)
+                                    {{ $this->formatAmount($item['debit']) }}
+                                    @endif
+                                </td>
+                                <td class="px-6 py-4 text-sm text-right text-indigo-300">
+                                    @if ($item['credit'] > 0)
+                                    {{ $this->formatAmount($item['credit']) }}
+                                    @endif
+                                </td>
+                                <td class="px-6 py-4 text-sm text-right text-indigo-300">
+                                    @if (isset($item['closing_balance']))
+                                    {{ $this->formatAmount($item['closing_balance']) }}
+                                    @endif
+                                </td>
+                            </tr>
+                            @endforeach
+                            <tr class="bg-indigo-900/40">
+                                <td colspan="2" class="px-6 py-3 text-sm font-semibold text-indigo-100">
+                                    Totals</td>
+                                <td class="px-6 py-3 text-sm font-semibold text-right text-indigo-100">
+                                    @if (isset($report_data['total_opening_balance']))
+                                    {{ $this->formatAmount($report_data['total_opening_balance']) }}
+                                    @endif
+                                </td>
+                                <td class="px-6 py-3 text-sm font-semibold text-right text-indigo-100">
+                                    {{ $this->formatAmount($report_data['total_debits']) }}</td>
+                                <td class="px-6 py-3 text-sm font-semibold text-right text-indigo-100">
+                                    {{ $this->formatAmount($report_data['total_credits']) }}</td>
+                                <td class="px-6 py-3 text-sm font-semibold text-right text-indigo-100">
+                                    @if (isset($report_data['total_closing_balance']))
+                                    {{ $this->formatAmount($report_data['total_closing_balance']) }}
+                                    @endif
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            @endif
+        </x-glass-card>
         @endif
     </div>
 </div>

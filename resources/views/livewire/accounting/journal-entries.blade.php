@@ -382,8 +382,8 @@ new class extends Component {
                             class="rounded-lg border-0 bg-indigo-900/10 focus:ring-2 focus:ring-indigo-500">
                             <flux:select.option value="">All Jobs</flux:select.option>
                             @foreach ($jobBookings as $job)
-                                <flux:select.option value="{{ $job->id }}">{{ $job->job_number }}
-                                </flux:select.option>
+                            <flux:select.option value="{{ $job->id }}">{{ $job->job_number }}
+                            </flux:select.option>
                             @endforeach
                         </flux:select>
                     </div>
@@ -439,61 +439,60 @@ new class extends Component {
                     </thead>
                     <tbody class="bg-indigo-900/10 backdrop-blur-sm divide-y divide-indigo-200/10">
                         @forelse ($journals as $journal)
-                            <tr class="hover:bg-indigo-900/20 transition-colors duration-200">
-                                <td class="px-4 py-3 whitespace-nowrap text-sm text-indigo-100">
-                                    {{ $journal->date->format('Y-m-d') }}
-                                </td>
-                                <td class="px-4 py-3 whitespace-nowrap">
-                                    <span class="text-sm font-medium text-indigo-100">{{ $journal->reference }}</span>
-                                </td>
-                                <td class="px-4 py-3 max-w-xs">
-                                    <div class="text-sm text-indigo-200 truncate">{{ $journal->description }}</div>
-                                </td>
-                                <td class="px-4 py-3 whitespace-nowrap">
-                                    <span
-                                        class="inline-flex px-2 text-xs font-semibold leading-5 rounded-full
+                        <tr class="hover:bg-indigo-900/20 transition-colors duration-200">
+                            <td class="px-4 py-3 whitespace-nowrap text-sm text-indigo-100">
+                                {{ $journal->date->format('Y-m-d') }}
+                            </td>
+                            <td class="px-4 py-3 whitespace-nowrap">
+                                <span class="text-sm font-medium text-indigo-100">{{ $journal->reference }}</span>
+                            </td>
+                            <td class="px-4 py-3 max-w-xs">
+                                <div class="text-sm text-indigo-200 truncate">{{ $journal->description }}</div>
+                            </td>
+                            <td class="px-4 py-3 whitespace-nowrap">
+                                <span class="inline-flex px-2 text-xs font-semibold leading-5 rounded-full
                                         @if ($journal->status === 'posted') bg-emerald-100/20 text-emerald-400
                                         @elseif($journal->status === 'draft') bg-amber-100/20 text-amber-400
                                         @else bg-rose-100/20 text-rose-400 @endif">
-                                        {{ ucfirst($journal->status) }}
-                                    </span>
-                                </td>
-                                <td class="px-4 py-3 whitespace-nowrap text-center text-sm">
-                                    @if ($journal->jobBooking)
-                                        <span class="text-indigo-200">{{ $journal->jobBooking->job_number }}</span>
-                                    @else
-                                        <span class="text-indigo-400/50">—</span>
-                                    @endif
-                                </td>
-                                <td class="px-4 py-3 whitespace-nowrap text-right text-sm font-medium text-indigo-100">
-                                    @php
-                                        $total = $journal->entries->sum('debit');
-                                    @endphp
-                                    {{ $journal->formatMoney($total) }}
-                                </td>
-                                <td class="px-4 py-3 whitespace-nowrap text-center text-sm">
-                                    <div class="flex justify-center space-x-2">
-                                        <flux:button wire:click="viewJournalDetails({{ $journal->id }})"
-                                            size="xs" variant="primary" class="inline-flex items-center">
-                                            View
-                                        </flux:button>
-                                        {{-- @if ($journal->status !== 'void')
-                                            <flux:button wire:click="reverseJournalEntry({{ $journal->id }})"
-                                                size="xs" variant="danger" class="inline-flex items-center"
-                                                confirm-text="Are you sure you want to reverse this journal entry? This will create a new entry that cancels out this transaction."
-                                                confirm-button-text="Yes, Reverse" cancel-button-text="No, Cancel">
-                                                Reverse
-                                            </flux:button>
-                                        @endif --}}
-                                    </div>
-                                </td>
-                            </tr>
+                                    {{ ucfirst($journal->status) }}
+                                </span>
+                            </td>
+                            <td class="px-4 py-3 whitespace-nowrap text-center text-sm">
+                                @if ($journal->jobBooking)
+                                <span class="text-indigo-200">{{ $journal->jobBooking->job_number }}</span>
+                                @else
+                                <span class="text-indigo-400/50">—</span>
+                                @endif
+                            </td>
+                            <td class="px-4 py-3 whitespace-nowrap text-right text-sm font-medium text-indigo-100">
+                                @php
+                                $total = $journal->entries->sum('debit');
+                                @endphp
+                                {{ $journal->formatMoney($total) }}
+                            </td>
+                            <td class="px-4 py-3 whitespace-nowrap text-center text-sm">
+                                <div class="flex justify-center space-x-2">
+                                    <flux:button wire:click="viewJournalDetails({{ $journal->id }})" size="xs"
+                                        variant="primary" class="inline-flex items-center">
+                                        View
+                                    </flux:button>
+                                    {{-- @if ($journal->status !== 'void')
+                                    <flux:button wire:click="reverseJournalEntry({{ $journal->id }})" size="xs"
+                                        variant="danger" class="inline-flex items-center"
+                                        confirm-text="Are you sure you want to reverse this journal entry? This will create a new entry that cancels out this transaction."
+                                        confirm-button-text="Yes, Reverse" cancel-button-text="No, Cancel">
+                                        Reverse
+                                    </flux:button>
+                                    @endif --}}
+                                </div>
+                            </td>
+                        </tr>
                         @empty
-                            <tr>
-                                <td colspan="7" class="px-4 py-6 text-center text-indigo-300">
-                                    No journal entries found
-                                </td>
-                            </tr>
+                        <tr>
+                            <td colspan="7" class="px-4 py-6 text-center text-indigo-300">
+                                No journal entries found
+                            </td>
+                        </tr>
                         @endforelse
                     </tbody>
                 </table>
@@ -517,15 +516,15 @@ new class extends Component {
                     <div class="p-5 space-y-6">
                         <!-- Form error messages -->
                         @error('general')
-                            <div class="bg-rose-500/20 text-rose-300 px-4 py-2 rounded mb-4">
-                                {{ $message }}
-                            </div>
+                        <div class="bg-rose-500/20 text-rose-300 px-4 py-2 rounded mb-4">
+                            {{ $message }}
+                        </div>
                         @enderror
 
                         @error('entries')
-                            <div class="bg-rose-500/20 text-rose-300 px-4 py-2 rounded mb-4">
-                                {{ $message }}
-                            </div>
+                        <div class="bg-rose-500/20 text-rose-300 px-4 py-2 rounded mb-4">
+                            {{ $message }}
+                        </div>
                         @enderror
 
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
@@ -537,7 +536,7 @@ new class extends Component {
                                 <flux:input type="date" wire:model="date" id="date"
                                     class="rounded-lg border-0 bg-indigo-900/10 focus:ring-2 focus:ring-indigo-500 w-full" />
                                 @error('date')
-                                    <p class="mt-1 text-xs text-rose-400">{{ $message }}</p>
+                                <p class="mt-1 text-xs text-rose-400">{{ $message }}</p>
                                 @enderror
                             </div>
 
@@ -554,7 +553,7 @@ new class extends Component {
                                     <flux:select.option value="JV">Journal Voucher (JV)</flux:select.option>
                                 </flux:select>
                                 @error('reference')
-                                    <p class="mt-1 text-xs text-rose-400">{{ $message }}</p>
+                                <p class="mt-1 text-xs text-rose-400">{{ $message }}</p>
                                 @enderror
                             </div>
 
@@ -567,12 +566,12 @@ new class extends Component {
                                     class="rounded-lg border-0 bg-indigo-900/10 focus:ring-2 focus:ring-indigo-500 w-full">
                                     <flux:select.option value="">Select Organization</flux:select.option>
                                     @foreach ($organizations as $organization)
-                                        <flux:select.option value="{{ $organization->id }}">{{ $organization->name }}
-                                        </flux:select.option>
+                                    <flux:select.option value="{{ $organization->id }}">{{ $organization->name }}
+                                    </flux:select.option>
                                     @endforeach
                                 </flux:select>
                                 @error('organization_id')
-                                    <p class="mt-1 text-xs text-rose-400">{{ $message }}</p>
+                                <p class="mt-1 text-xs text-rose-400">{{ $message }}</p>
                                 @enderror
                             </div>
 
@@ -584,7 +583,7 @@ new class extends Component {
                                 <flux:textarea wire:model="description" id="description" rows="1"
                                     class="rounded-lg border-0 bg-indigo-900/10 focus:ring-2 focus:ring-indigo-500 w-full" />
                                 @error('description')
-                                    <p class="mt-1 text-xs text-rose-400">{{ $message }}</p>
+                                <p class="mt-1 text-xs text-rose-400">{{ $message }}</p>
                                 @enderror
                             </div>
 
@@ -597,12 +596,12 @@ new class extends Component {
                                     class="rounded-lg border-0 bg-indigo-900/10 focus:ring-2 focus:ring-indigo-500 w-full">
                                     <flux:select.option value="">Select Job (Optional)</flux:select.option>
                                     @foreach ($jobBookings as $job)
-                                        <flux:select.option value="{{ $job->id }}">{{ $job->job_number }} -
-                                            {{ $job->campaign }}</flux:select.option>
+                                    <flux:select.option value="{{ $job->id }}">{{ $job->job_number }} -
+                                        {{ $job->campaign }}</flux:select.option>
                                     @endforeach
                                 </flux:select>
                                 @error('job_booking_id')
-                                    <p class="mt-1 text-xs text-rose-400">{{ $message }}</p>
+                                <p class="mt-1 text-xs text-rose-400">{{ $message }}</p>
                                 @enderror
                             </div>
                         </div>
@@ -615,19 +614,19 @@ new class extends Component {
                                     <div
                                         class="text-sm @if (!$this->isBalanced() && count($this->entries) > 0) text-rose-400 @else text-emerald-400 @endif">
                                         @if ($this->isBalanced() && count($this->entries) > 0)
-                                            <span class="inline-flex items-center">
-                                                <flux:icon name="check-circle" class="h-4 w-4 mr-1" />
-                                                Balanced
-                                            </span>
+                                        <span class="inline-flex items-center">
+                                            <flux:icon name="check-circle" class="h-4 w-4 mr-1" />
+                                            Balanced
+                                        </span>
                                         @elseif(!$this->isBalanced() && count($this->entries) > 0)
-                                            <span class="inline-flex items-center">
-                                                <flux:icon name="x-circle" class="h-4 w-4 mr-1" />
-                                                Unbalanced
-                                            </span>
+                                        <span class="inline-flex items-center">
+                                            <flux:icon name="x-circle" class="h-4 w-4 mr-1" />
+                                            Unbalanced
+                                        </span>
                                         @endif
                                     </div>
-                                    <flux:button wire:click="addEntry" type="button" size="xs"
-                                        variant="primary" class="inline-flex items-center">
+                                    <flux:button wire:click="addEntry" type="button" size="xs" variant="primary"
+                                        class="inline-flex items-center">
                                         Add Line
                                     </flux:button>
                                 </div>
@@ -661,75 +660,68 @@ new class extends Component {
                                     </thead>
                                     <tbody class="bg-indigo-900/10 backdrop-blur-sm divide-y divide-indigo-200/10">
                                         @foreach ($entries as $index => $entry)
-                                            <tr class="hover:bg-indigo-900/20 transition-colors duration-200">
-                                                <td class="px-4 py-2">
-                                                    <flux:select wire:model="entries.{{ $index }}.account_id"
-                                                        class="text-sm rounded-lg border-0 bg-indigo-900/10 focus:ring-2 focus:ring-indigo-500 w-full">
-                                                        <flux:select.option value="">Select Account
-                                                        </flux:select.option>
-                                                        @foreach ($accounts as $account)
-                                                            <flux:select.option value="{{ $account->id }}">
-                                                                {{ $account->account_number }} - {{ $account->name }}
-                                                            </flux:select.option>
-                                                        @endforeach
-                                                    </flux:select>
-                                                    @error('entries.' . $index . '.account_id')
-                                                        <p class="mt-1 text-xs text-rose-400">{{ $message }}</p>
-                                                    @enderror
-                                                </td>
-                                                <td class="px-4 py-2">
-                                                    <flux:input wire:model="entries.{{ $index }}.description"
-                                                        type="text" placeholder="Description (optional)"
-                                                        class="text-sm rounded-lg border-0 bg-indigo-900/10 focus:ring-2 focus:ring-indigo-500 w-full" />
-                                                </td>
-                                                <td class="px-4 py-2">
-                                                    @if ($index === 0)
-                                                        <flux:input wire:model="entries.{{ $index }}.debit"
-                                                            type="number" step="0.01" min="0"
-                                                            placeholder="0.00"
-                                                            class="text-sm text-right rounded-lg border-0 bg-indigo-900/10 focus:ring-2 focus:ring-indigo-500 w-full" />
-                                                    @elseif ($index === 1)
-                                                        <div class="text-center text-xs text-indigo-400/50">— (Debit
-                                                            not allowed here)</div>
-                                                        <input type="hidden"
-                                                            wire:model="entries.{{ $index }}.debit"
-                                                            value="0" />
-                                                    @else
-                                                        <flux:input wire:model="entries.{{ $index }}.debit"
-                                                            type="number" step="0.01" min="0"
-                                                            placeholder="0.00"
-                                                            class="text-sm text-right rounded-lg border-0 bg-indigo-900/10 focus:ring-2 focus:ring-indigo-500 w-full" />
-                                                    @endif
-                                                </td>
-                                                <td class="px-4 py-2">
-                                                    @if ($index === 0)
-                                                        <div class="text-center text-xs text-indigo-400/50">— (Credit
-                                                            not allowed here)</div>
-                                                        <input type="hidden"
-                                                            wire:model="entries.{{ $index }}.credit"
-                                                            value="0" />
-                                                    @elseif ($index === 1)
-                                                        <flux:input wire:model="entries.{{ $index }}.credit"
-                                                            type="number" step="0.01" min="0"
-                                                            placeholder="0.00"
-                                                            class="text-sm text-right rounded-lg border-0 bg-indigo-900/10 focus:ring-2 focus:ring-indigo-500 w-full" />
-                                                    @else
-                                                        <flux:input wire:model="entries.{{ $index }}.credit"
-                                                            type="number" step="0.01" min="0"
-                                                            placeholder="0.00"
-                                                            class="text-sm text-right rounded-lg border-0 bg-indigo-900/10 focus:ring-2 focus:ring-indigo-500 w-full" />
-                                                    @endif
-                                                </td>
-                                                <td class="px-4 py-2 text-center">
-                                                    @if (count($entries) > 2)
-                                                        <button wire:click="removeEntry({{ $index }})"
-                                                            type="button"
-                                                            class="text-rose-400 hover:text-rose-300 transition-colors">
-                                                            <flux:icon name="trash" class="h-4 w-4" />
-                                                        </button>
-                                                    @endif
-                                                </td>
-                                            </tr>
+                                        <tr class="hover:bg-indigo-900/20 transition-colors duration-200">
+                                            <td class="px-4 py-2">
+                                                <flux:select wire:model="entries.{{ $index }}.account_id"
+                                                    class="text-sm rounded-lg border-0 bg-indigo-900/10 focus:ring-2 focus:ring-indigo-500 w-full">
+                                                    <flux:select.option value="">Select Account
+                                                    </flux:select.option>
+                                                    @foreach ($accounts as $account)
+                                                    <flux:select.option value="{{ $account->id }}">
+                                                        {{ $account->account_number }} - {{ $account->name }}
+                                                    </flux:select.option>
+                                                    @endforeach
+                                                </flux:select>
+                                                @error('entries.' . $index . '.account_id')
+                                                <p class="mt-1 text-xs text-rose-400">{{ $message }}</p>
+                                                @enderror
+                                            </td>
+                                            <td class="px-4 py-2">
+                                                <flux:input wire:model="entries.{{ $index }}.description" type="text"
+                                                    placeholder="Description (optional)"
+                                                    class="text-sm rounded-lg border-0 bg-indigo-900/10 focus:ring-2 focus:ring-indigo-500 w-full" />
+                                            </td>
+                                            <td class="px-4 py-2">
+                                                @if ($index === 0)
+                                                <flux:input wire:model.live="entries.{{ $index }}.debit" type="number"
+                                                    step="0.01" min="0" placeholder="0.00"
+                                                    class="text-sm text-right rounded-lg border-0 bg-indigo-900/10 focus:ring-2 focus:ring-indigo-500 w-full" />
+                                                @elseif ($index === 1)
+                                                <div class="text-center text-xs text-indigo-400/50">— (Debit
+                                                    not allowed here)</div>
+                                                <input type="hidden" wire:model.live="entries.{{ $index }}.debit"
+                                                    value="0" />
+                                                @else
+                                                <flux:input wire:model.live="entries.{{ $index }}.debit" type="number"
+                                                    step="0.01" min="0" placeholder="0.00"
+                                                    class="text-sm text-right rounded-lg border-0 bg-indigo-900/10 focus:ring-2 focus:ring-indigo-500 w-full" />
+                                                @endif
+                                            </td>
+                                            <td class="px-4 py-2">
+                                                @if ($index === 0)
+                                                <div class="text-center text-xs text-indigo-400/50">— (Credit
+                                                    not allowed here)</div>
+                                                <input type="hidden" wire:model.live="entries.{{ $index }}.credit"
+                                                    value="0" />
+                                                @elseif ($index === 1)
+                                                <flux:input wire:model.live="entries.{{ $index }}.credit" type="number"
+                                                    step="0.01" min="0" placeholder="0.00"
+                                                    class="text-sm text-right rounded-lg border-0 bg-indigo-900/10 focus:ring-2 focus:ring-indigo-500 w-full" />
+                                                @else
+                                                <flux:input wire:model.live="entries.{{ $index }}.credit" type="number"
+                                                    step="0.01" min="0" placeholder="0.00"
+                                                    class="text-sm text-right rounded-lg border-0 bg-indigo-900/10 focus:ring-2 focus:ring-indigo-500 w-full" />
+                                                @endif
+                                            </td>
+                                            <td class="px-4 py-2 text-center">
+                                                @if (count($entries) > 2)
+                                                <button wire:click="removeEntry({{ $index }})" type="button"
+                                                    class="text-rose-400 hover:text-rose-300 transition-colors">
+                                                    <flux:icon name="trash" class="h-4 w-4" />
+                                                </button>
+                                                @endif
+                                            </td>
+                                        </tr>
                                         @endforeach
 
                                         <!-- Totals row -->
@@ -769,131 +761,133 @@ new class extends Component {
         <!-- Journal Details Modal -->
         <flux:modal name="journal-details" class="w-full max-w-5xl">
             @if ($transactionDetails)
-                <x-glass-card colorScheme="indigo" class="overflow-hidden">
-                    <!-- Modal header -->
-                    <div class="flex justify-between items-center border-b border-indigo-200/20 p-4">
-                        <h3 class="text-lg font-semibold text-indigo-100">Journal Entry Details</h3>
-                    </div>
+            <x-glass-card colorScheme="indigo" class="overflow-hidden">
+                <!-- Modal header -->
+                <div class="flex justify-between items-center border-b border-indigo-200/20 p-4">
+                    <h3 class="text-lg font-semibold text-indigo-100">Journal Entry Details</h3>
+                </div>
 
-                    <div class="p-5">
-                        <div class="flex justify-between items-start mb-6">
-                            <div>
-                                <h2 class="text-xl font-bold text-indigo-100 mb-1">
-                                    {{ $transactionDetails->reference }}</h2>
-                                <p class="text-sm text-indigo-300">Date:
-                                    {{ $transactionDetails->date->format('Y-m-d') }}</p>
-                                <p class="text-sm text-indigo-300">Organization:
-                                    {{ $transactionDetails->organization ? $transactionDetails->organization->name : 'N/A' }}
-                                </p>
-                                @if ($transactionDetails->jobBooking)
-                                    <p class="text-sm text-indigo-300">Job:
-                                        {{ $transactionDetails->jobBooking->job_number }}</p>
-                                @endif
-                            </div>
-                            <div class="text-right">
-                                <span
-                                    class="inline-flex px-3 py-1 text-sm font-medium rounded-full
+                <div class="p-5">
+                    <div class="flex justify-between items-start mb-6">
+                        <div>
+                            <h2 class="text-xl font-bold text-indigo-100 mb-1">
+                                {{ $transactionDetails->reference }}</h2>
+                            <p class="text-sm text-indigo-300">Date:
+                                {{ $transactionDetails->date->format('Y-m-d') }}</p>
+                            <p class="text-sm text-indigo-300">Organization:
+                                {{ $transactionDetails->organization ? $transactionDetails->organization->name : 'N/A'
+                                }}
+                            </p>
+                            @if ($transactionDetails->jobBooking)
+                            <p class="text-sm text-indigo-300">Job:
+                                {{ $transactionDetails->jobBooking->job_number }}</p>
+                            @endif
+                        </div>
+                        <div class="text-right">
+                            <span class="inline-flex px-3 py-1 text-sm font-medium rounded-full
                                     @if ($transactionDetails->status === 'posted') bg-emerald-100/20 text-emerald-400
                                     @elseif($transactionDetails->status === 'draft') bg-amber-100/20 text-amber-400
                                     @else bg-rose-100/20 text-rose-400 @endif">
-                                    {{ ucfirst($transactionDetails->status) }}
-                                </span>
-                                <p class="text-sm text-indigo-300 mt-2">
-                                    Created by: {{ $transactionDetails->creator->name ?? 'Unknown' }}
-                                </p>
-                                <p class="text-sm text-indigo-300">
-                                    Created on: {{ $transactionDetails->created_at->format('Y-m-d H:i') }}
-                                </p>
-                            </div>
-                        </div>
-
-                        <div class="mb-6">
-                            <h3 class="text-sm font-semibold text-indigo-300 mb-1">Description</h3>
-                            <p class="text-indigo-100">{{ $transactionDetails->description }}</p>
-                        </div>
-
-                        <div class="mb-6">
-                            <h3 class="text-sm font-semibold text-indigo-300 mb-3">Journal Entries</h3>
-                            <div class="overflow-x-auto border border-indigo-200/20 rounded-lg">
-                                <table class="min-w-full divide-y divide-indigo-200/20">
-                                    <thead class="bg-indigo-900/30">
-                                        <tr>
-                                            <th
-                                                class="px-4 py-3 text-left text-xs font-medium text-indigo-300 uppercase tracking-wider">
-                                                Account
-                                            </th>
-                                            <th
-                                                class="px-4 py-3 text-left text-xs font-medium text-indigo-300 uppercase tracking-wider">
-                                                Description
-                                            </th>
-                                            <th
-                                                class="px-4 py-3 text-right text-xs font-medium text-indigo-300 uppercase tracking-wider">
-                                                Debit
-                                            </th>
-                                            <th
-                                                class="px-4 py-3 text-right text-xs font-medium text-indigo-300 uppercase tracking-wider">
-                                                Credit
-                                            </th>
-                                        </tr>
-                                    </thead>
-                                    <tbody class="bg-indigo-900/10 backdrop-blur-sm divide-y divide-indigo-200/10">
-                                        @foreach ($transactionDetails->entries as $entry)
-                                            <tr class="hover:bg-indigo-900/20 transition-colors duration-200">
-                                                <td class="px-4 py-3 whitespace-nowrap text-sm text-indigo-100">
-                                                    @if ($entry->account)
-                                                        {{ $entry->account->account_number }} -
-                                                        {{ $entry->account->name }}
-                                                    @else
-                                                        Account Not Found
-                                                    @endif
-                                                </td>
-                                                <td class="px-4 py-3 text-sm text-indigo-300">
-                                                    {{ $entry->description }}
-                                                </td>
-                                                <td
-                                                    class="px-4 py-3 whitespace-nowrap text-right text-sm text-indigo-100">
-                                                    {{ $entry->debit > 0 ? $entry->formatMoney($entry->debit) : '' }}
-                                                </td>
-                                                <td
-                                                    class="px-4 py-3 whitespace-nowrap text-right text-sm text-indigo-100">
-                                                    {{ $entry->credit > 0 ? $entry->formatMoney($entry->credit) : '' }}
-                                                </td>
-                                            </tr>
-                                        @endforeach
-                                        <!-- Totals row -->
-                                        <tr class="bg-indigo-900/30 font-medium">
-                                            <td colspan="2" class="px-4 py-3 text-right text-sm text-indigo-200">
-                                                Totals
-                                            </td>
-                                            <td class="px-4 py-3 whitespace-nowrap text-right text-sm text-indigo-100">
-                                                {{ $transactionDetails->formatMoney($transactionDetails->entries->sum('debit')) }}
-                                            </td>
-                                            <td class="px-4 py-3 whitespace-nowrap text-right text-sm text-indigo-100">
-                                                {{ $transactionDetails->formatMoney($transactionDetails->entries->sum('credit')) }}
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-
-                        <!-- Actions -->
-                        <div class="flex justify-end space-x-3 mt-6">
-                            <flux:button wire:click="generatePdf({{ $transactionDetails->id }})" variant="primary"
-                                size="sm" class="inline-flex items-center">
-                                Export PDF
-                            </flux:button>
-                            {{-- @if ($transactionDetails->status !== 'void')
-                                <flux:button wire:click="reverseJournalEntry({{ $transactionDetails->id }})"
-                                    variant="danger" size="sm" class="inline-flex items-center"
-                                    confirm-text="Are you sure you want to reverse this journal entry? This will create a new entry that cancels out this transaction."
-                                    confirm-button-text="Yes, Reverse" cancel-button-text="No, Cancel">
-                                    Reverse Entry
-                                </flux:button>
-                            @endif --}}
+                                {{ ucfirst($transactionDetails->status) }}
+                            </span>
+                            <p class="text-sm text-indigo-300 mt-2">
+                                Created by: {{ $transactionDetails->creator->name ?? 'Unknown' }}
+                            </p>
+                            <p class="text-sm text-indigo-300">
+                                Created on: {{ $transactionDetails->created_at->format('Y-m-d H:i') }}
+                            </p>
                         </div>
                     </div>
-                </x-glass-card>
+
+                    <div class="mb-6">
+                        <h3 class="text-sm font-semibold text-indigo-300 mb-1">Description</h3>
+                        <p class="text-indigo-100">{{ $transactionDetails->description }}</p>
+                    </div>
+
+                    <div class="mb-6">
+                        <h3 class="text-sm font-semibold text-indigo-300 mb-3">Journal Entries</h3>
+                        <div class="overflow-x-auto border border-indigo-200/20 rounded-lg">
+                            <table class="min-w-full divide-y divide-indigo-200/20">
+                                <thead class="bg-indigo-900/30">
+                                    <tr>
+                                        <th
+                                            class="px-4 py-3 text-left text-xs font-medium text-indigo-300 uppercase tracking-wider">
+                                            Account
+                                        </th>
+                                        <th
+                                            class="px-4 py-3 text-left text-xs font-medium text-indigo-300 uppercase tracking-wider">
+                                            Description
+                                        </th>
+                                        <th
+                                            class="px-4 py-3 text-right text-xs font-medium text-indigo-300 uppercase tracking-wider">
+                                            Debit
+                                        </th>
+                                        <th
+                                            class="px-4 py-3 text-right text-xs font-medium text-indigo-300 uppercase tracking-wider">
+                                            Credit
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-indigo-900/10 backdrop-blur-sm divide-y divide-indigo-200/10">
+                                    @foreach ($transactionDetails->entries as $entry)
+                                    <tr class="hover:bg-indigo-900/20 transition-colors duration-200">
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-indigo-100">
+                                            @if ($entry->account)
+                                            {{ $entry->account->account_number }} -
+                                            {{ $entry->account->name }}
+                                            @else
+                                            Account Not Found
+                                            @endif
+                                        </td>
+                                        <td class="px-4 py-3 text-sm text-indigo-300">
+                                            {{ $entry->description }}
+                                        </td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-right text-sm text-indigo-100">
+                                            {{ $entry->debit > 0 ? $entry->formatMoney($entry->debit) : '' }}
+                                        </td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-right text-sm text-indigo-100">
+                                            {{ $entry->credit > 0 ? $entry->formatMoney($entry->credit) : '' }}
+                                        </td>
+                                    </tr>
+                                    @endforeach
+                                    <!-- Totals row -->
+                                    <tr class="bg-indigo-900/30 font-medium">
+                                        <td colspan="2" class="px-4 py-3 text-right text-sm text-indigo-200">
+                                            Totals
+                                        </td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-right text-sm text-indigo-100">
+                                            {{
+                                            $transactionDetails->formatMoney($transactionDetails->entries->sum('debit'))
+                                            }}
+                                        </td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-right text-sm text-indigo-100">
+                                            {{
+                                            $transactionDetails->formatMoney($transactionDetails->entries->sum('credit'))
+                                            }}
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="flex justify-end space-x-3 mt-6">
+                        <flux:button wire:click="generatePdf({{ $transactionDetails->id }})" variant="primary" size="sm"
+                            class="inline-flex items-center">
+                            Export PDF
+                        </flux:button>
+                        {{-- @if ($transactionDetails->status !== 'void')
+                        <flux:button wire:click="reverseJournalEntry({{ $transactionDetails->id }})" variant="danger"
+                            size="sm" class="inline-flex items-center"
+                            confirm-text="Are you sure you want to reverse this journal entry? This will create a new entry that cancels out this transaction."
+                            confirm-button-text="Yes, Reverse" cancel-button-text="No, Cancel">
+                            Reverse Entry
+                        </flux:button>
+                        @endif --}}
+                    </div>
+                </div>
+            </x-glass-card>
             @endif
         </flux:modal>
     </div>
