@@ -29,6 +29,7 @@ Route::middleware(['auth'])->group(function ()
     Volt::route('accounts/chart-of-accounts', 'accounting.chart-of-accounts')->name('accounts.chart-of-accounts');
     Volt::route('accounts/journal-entries', 'accounting.journal-entries')->name('accounts.journal-entries');
     Volt::route('accounts/financial-reports', 'accounting.financial-reports')->name('accounts.financial-reports');
+    Volt::route('accounts/petty-cash', 'accounting.petty-cash')->name('accounts.petty-cash');
 
     // Admin routes
     Volt::route('admin/organizations', 'admin.organizations')->name('admin.organizations');

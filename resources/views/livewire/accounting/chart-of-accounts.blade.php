@@ -153,7 +153,7 @@ new class extends Component {
             'type' => $this->type,
             'description' => $this->description,
             'is_active' => $this->is_active,
-            'current_balance' => $this->current_balance ?: 0,
+            'current_balance' => $this->opening_balance ?: 0,
             'opening_balance' => $this->opening_balance ?: 0,
             'balance_date' => $this->balance_date,
             'organization_id' => $this->organization_id,

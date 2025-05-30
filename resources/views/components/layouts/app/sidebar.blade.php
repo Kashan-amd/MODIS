@@ -57,6 +57,12 @@
                 <flux:navlist.item icon="book-open" :href="route('accounts.journal-entries')" wire:navigate>
                     {{ __('Journal Entries') }}
                 </flux:navlist.item>
+                <flux:navlist.item icon="banknotes" :href="route('accounts.petty-cash')" wire:navigate>
+                    {{ __('Petty Cash') }}
+                </flux:navlist.item>
+            </flux:navlist.group>
+
+            <flux:navlist.group expandable :heading="__('Finance')" class="hidden lg:grid" :expanded="true">
                 <flux:navlist.item icon="document-chart-bar" :href="route('accounts.financial-reports')" wire:navigate>
                     {{ __('Financial Reports') }}
                 </flux:navlist.item>
