@@ -113,18 +113,19 @@ new class extends Component {
                 $debit = floatval($entry['debit'] ?? 0);
                 $credit = floatval($entry['credit'] ?? 0);
 
-                // For Asset and Expense accounts:
-                // - Debit increases the balance (positive amount)
-                // - Credit decreases the balance (negative amount)
-
-                // For Liability, Equity, and Income accounts:
-                // - Debit decreases the balance (negative amount)
-                // - Credit increases the balance (positive amount)
-
                 // Calculate impact on account balance based on account type
-                $amount = $debit - $credit;
-                if (in_array($account->type, ['liability', 'equity', 'income'])) {
-                    $amount = -$amount;
+                if (in_array($account->type, ['asset', 'expense'])) {
+                    // For Asset and Expense accounts:
+                    // - Debit increases the balance
+                    // - Credit decreases the balance
+                    $amount = $debit - $credit;
+                    $account->current_balance += $amount;
+                } else {
+                    // For Liability, Equity, and Income accounts:
+                    // - Credit increases the balance
+                    // - Debit decreases the balance
+                    $amount = $credit - $debit;
+                    $account->current_balance -= $amount;
                 }
 
                 $entryData[] = [
@@ -136,7 +137,7 @@ new class extends Component {
                 ];
 
                 // Update account balance
-                $account->current_balance += $amount;
+
                 $account->save();
             }
 

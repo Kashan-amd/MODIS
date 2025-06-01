@@ -17,6 +17,10 @@ new class extends Component {
     ];
     public $upcomingEvents = [];
     public $currentDate;
+    public $loanData = [
+        'loanToGive' => 0,
+        'companiesOwing' => []
+    ];
 
     public function mount()
     {
@@ -79,6 +83,41 @@ new class extends Component {
                 ->sum('amount'),
 
             'venues' => rand(5, 10), // Placeholder for demo purposes
+        ];
+
+        // Load loan data (dummy data for demonstration)
+        $this->loadLoanData();
+    }
+
+    public function loadLoanData()
+    {
+        if (!$this->selectedOrganizationId) {
+            $this->loanData = [
+                'loanToGive' => 0,
+                'companiesOwing' => []
+            ];
+            return;
+        }
+
+        // Get current organization
+        $currentOrg = Organization::find($this->selectedOrganizationId);
+        if (!$currentOrg) {
+            return;
+        }
+
+        // Dummy loan data - in real implementation, this would come from a loans table
+        $this->loanData = [
+            'loanToGive' => rand(500000, 2000000), // Random amount between 500k - 2M
+            'companiesOwing' => $this->organizations
+                ->where('id', '!=', $this->selectedOrganizationId)
+                ->take(4)
+                ->map(function ($org) {
+                    return [
+                        'name' => $org->name,
+                        'amount' => rand(50000, 500000),
+                        'status' => ['pending', 'overdue', 'upcoming'][rand(0, 2)],
+                    ];
+                })->toArray()
         ];
     }
 }; ?>
@@ -210,16 +249,11 @@ new class extends Component {
                 <div class="relative">
                     <div
                         class="mb-4 inline-flex rounded-xl bg-emerald-100 p-3 text-emerald-600 ring-4 ring-emerald-100/30 dark:bg-emerald-900/50 dark:text-emerald-400 dark:ring-emerald-900/20">
-                        <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                            xmlns="http://www.w3.org/2000/svg">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
-                            </path>
-                        </svg>
+                        <flux:icon icon="arrow-trending-up"></flux:icon>
                     </div>
                     <h3 class="mb-1 text-lg font-semibold text-gray-800 dark:text-white">Total Revenue Booked</h3>
                     <div class="flex items-baseline">
-                        <span class="text-3xl font-bold text-gray-800 dark:text-white">PKR
+                        <span class="text-3xl font-bold text-gray-800 dark:text-white">
                             {{ number_format($stats['totalRevenue']) }}</span>
                         <span class="ml-2 text-sm text-gray-500 dark:text-gray-400">This Month</span>
                     </div>
@@ -258,7 +292,7 @@ new class extends Component {
                     </div>
                     <h3 class="mb-1 text-lg font-semibold text-gray-800 dark:text-white">Total Expenses Booked</h3>
                     <div class="flex items-baseline">
-                        <span class="text-3xl font-bold text-gray-800 dark:text-white">PKR
+                        <span class="text-3xl font-bold text-gray-800 dark:text-white">
                             {{ number_format($stats['totalExpenses']) }}</span>
                         <span class="ml-2 text-sm text-gray-500 dark:text-gray-400">This Month</span>
                     </div>
@@ -315,10 +349,10 @@ new class extends Component {
             </div>
         </div>
 
-        <!-- Main Content Area - Revamped with  layout -->
+        <!-- Main Content Area - Revamped with layout -->
         <div class="grid gap-6">
             <!-- Key Performance Metrics - Full Width -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div class="rounded-2xl border p-1 shadow-md hover:shadow-lg dark:border-zinc-700 dark:bg-zinc-800">
                     <div
                         class="border-b border-neutral-200 bg-white px-6 py-4 dark:border-neutral-700 dark:bg-neutral-800">
@@ -438,6 +472,83 @@ new class extends Component {
                         </a>
                     </div>
                 </div>
+
+                <!-- Loan Management Widget -->
+                <x:glass-card class=" hover:shadow-lg">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <h3 class="text-xl font-semibold text-gray-800 dark:text-white">Loan Management</h3>
+                        </div>
+                    </div>
+
+                    <div class="px-6 py-4">
+                        <!-- Loan to Give Section -->
+                        <div
+                            class="mb-6 rounded-xl bg-gradient-to-r from-blue-50 to-purple-50 p-4 dark:from-blue-900/20 dark:to-purple-900/20 text-center">
+                            {{-- <div class="flex items-center gap-3 mb-2">
+                                <div
+                                    class="rounded-lg bg-green-100 p-2 text-green-600 dark:bg-green-900/50 dark:text-green-400">
+                                    <flux:icon icon="banknotes"></flux:icon>
+                                </div>
+                                <h4 class="font-semibold text-gray-800 dark:text-white">Available to Loan</h4>
+                            </div> --}}
+                            <div class="text-3xl font-bold text-green-600 dark:text-green-400">
+                                {{ number_format($loanData['loanToGive']) }}
+                            </div>
+                            <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">Ready for disbursement</p>
+                        </div>
+
+                        <!-- Companies Owing Section -->
+                        <div>
+                            <h4 class="font-semibold text-gray-800 dark:text-white mb-3 flex items-center gap-2">
+                                <flux:icon icon="building-office"></flux:icon>
+                                Companies Owing
+                            </h4>
+                            <div class="space-y-3 max-h-[200px] overflow-y-auto">
+                                @if (count($loanData['companiesOwing']) > 0)
+                                @foreach ($loanData['companiesOwing'] as $company)
+                                <div
+                                    class="flex items-center justify-between rounded-lg border border-gray-200 p-3 dark:border-gray-700">
+                                    <div class="flex items-center gap-3">
+                                        <div
+                                            class="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-sm font-semibold">
+                                            {{ substr($company['name'], 0, 1) }}
+                                        </div>
+                                        <div>
+                                            <div class="font-medium text-gray-800 dark:text-white">
+                                                {{ $company['name']}}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="text-right p-2">
+                                        <flux:badge color="red" class="font-semibold">{{
+                                            number_format($company['amount']) }}
+                                        </flux:badge>
+                                    </div>
+                                </div>
+                                @endforeach
+                                @else
+                                <div class="text-center py-6 text-gray-500 dark:text-gray-400">
+                                    <svg class="mx-auto h-8 w-8 mb-2" fill="none" stroke="currentColor"
+                                        viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M20 12H4"></path>
+                                    </svg>
+                                    <p class="text-sm">No outstanding loans</p>
+                                </div>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-center px-6 py-2">
+                        <button
+                            class="text-xs font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">
+                            Manage Loans
+                        </button>
+                    </div>
+                </x:glass-card>
+
                 <div class="rounded-2xl border p-5 shadow-md hover:shadow-lg dark:border-zinc-700 dark:bg-zinc-800">
                     <div class="flex items-center justify-between">
                         <div>
@@ -466,18 +577,18 @@ new class extends Component {
                     <div class="mt-4 grid grid-cols-3 gap-4 text-center">
                         <div class="rounded-lg bg-white/60 p-3 shadow-sm dark:bg-neutral-800/60">
                             <p class="text-xs text-gray-500 dark:text-gray-400">Balance</p>
-                            <p class="mt-1 text-lg font-bold text-gray-800 dark:text-white">PKR 3,450</p>
-                            <p class="mt-1 text-xs text-yellow-600 dark:text-yellow-400">-12.5% this month</p>
+                            <p class="mt-1 text-lg font-bold text-gray-800 dark:text-white"> 3,450</p>
+                            {{-- <p class="mt-1 text-xs text-yellow-600 dark:text-yellow-400">-12.5% this month</p> --}}
                         </div>
                         <div class="rounded-lg bg-white/60 p-3 shadow-sm dark:bg-neutral-800/60">
-                            <p class="text-xs text-gray-500 dark:text-gray-400">Recent Transactions</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Recent</p>
                             <p class="mt-1 text-lg font-bold text-gray-800 dark:text-white">24</p>
-                            <p class="mt-1 text-xs text-green-600 dark:text-green-400">+8 since last week</p>
+                            {{-- <p class="mt-1 text-xs text-green-600 dark:text-green-400">+8 since last week</p> --}}
                         </div>
                         <div class="rounded-lg bg-white/60 p-3 shadow-sm dark:bg-neutral-800/60">
-                            <p class="text-xs text-gray-500 dark:text-gray-400">Pending Approvals</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Pending</p>
                             <p class="mt-1 text-lg font-bold text-gray-800 dark:text-white">5</p>
-                            <p class="mt-1 text-xs text-red-600 dark:text-red-400">3 urgent</p>
+                            {{-- <p class="mt-1 text-xs text-red-600 dark:text-red-400">3 urgent</p> --}}
                         </div>
                     </div>
                     <!-- Petty Cash Usage Breakdown -->
@@ -492,7 +603,7 @@ new class extends Component {
                             <div>
                                 <div class="flex justify-between text-xs mb-1">
                                     <span class="text-gray-600 dark:text-gray-400">Office Supplies</span>
-                                    <span class="font-medium text-gray-800 dark:text-gray-200">PKR 1,200</span>
+                                    <span class="font-medium text-gray-800 dark:text-gray-200"> 1,200</span>
                                 </div>
                                 <div class="h-2 bg-gray-200 rounded-full overflow-hidden dark:bg-gray-700">
                                     <div class="bg-emerald-500 h-full rounded-full" style="width: 35%"></div>
@@ -501,7 +612,7 @@ new class extends Component {
                             <div>
                                 <div class="flex justify-between text-xs mb-1">
                                     <span class="text-gray-600 dark:text-gray-400">Travel Expenses</span>
-                                    <span class="font-medium text-gray-800 dark:text-gray-200">PKR 900</span>
+                                    <span class="font-medium text-gray-800 dark:text-gray-200"> 900</span>
                                 </div>
                                 <div class="h-2 bg-gray-200 rounded-full overflow-hidden dark:bg-gray-700">
                                     <div class="bg-indigo-500 h-full rounded-full" style="width: 26%"></div>
@@ -510,7 +621,7 @@ new class extends Component {
                             <div>
                                 <div class="flex justify-between text-xs mb-1">
                                     <span class="text-gray-600 dark:text-gray-400">Refreshments</span>
-                                    <span class="font-medium text-gray-800 dark:text-gray-200">PKR 750</span>
+                                    <span class="font-medium text-gray-800 dark:text-gray-200"> 750</span>
                                 </div>
                                 <div class="h-2 bg-gray-200 rounded-full overflow-hidden dark:bg-gray-700">
                                     <div class="bg-amber-500 h-full rounded-full" style="width: 22%"></div>
@@ -518,8 +629,17 @@ new class extends Component {
                             </div>
                             <div>
                                 <div class="flex justify-between text-xs mb-1">
+                                    <span class="text-gray-600 dark:text-gray-400">Fuel</span>
+                                    <span class="font-medium text-gray-800 dark:text-gray-200"> 500</span>
+                                </div>
+                                <div class="h-2 bg-gray-200 rounded-full overflow-hidden dark:bg-gray-700">
+                                    <div class="bg-red-500 h-full rounded-full" style="width: 22%"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="flex justify-between text-xs mb-1">
                                     <span class="text-gray-600 dark:text-gray-400">Miscellaneous</span>
-                                    <span class="font-medium text-gray-800 dark:text-gray-200">PKR 600</span>
+                                    <span class="font-medium text-gray-800 dark:text-gray-200"> 600</span>
                                 </div>
                                 <div class="h-2 bg-gray-200 rounded-full overflow-hidden dark:bg-gray-700">
                                     <div class="bg-purple-500 h-full rounded-full" style="width: 17%"></div>
@@ -574,19 +694,19 @@ new class extends Component {
                         <div class="p-5 space-y-4">
                             <div class="flex justify-between items-center">
                                 <span class="text-sm text-gray-600 dark:text-gray-400">Total Revenue</span>
-                                <span class="font-medium text-gray-800 dark:text-white">PKR
+                                <span class="font-medium text-gray-800 dark:text-white">
                                     {{ number_format($stats['totalRevenue']) }}</span>
                             </div>
                             <div class="h-0.5 bg-gray-200 dark:bg-gray-700"></div>
                             <div class="flex justify-between items-center">
                                 <span class="text-sm text-gray-600 dark:text-gray-400">Total Expenses</span>
-                                <span class="font-medium text-gray-800 dark:text-white">PKR
+                                <span class="font-medium text-gray-800 dark:text-white">
                                     {{ number_format($stats['totalExpenses']) }}</span>
                             </div>
                             <div class="h-0.5 bg-gray-200 dark:bg-gray-700"></div>
                             <div class="flex justify-between items-center">
                                 <span class="text-sm font-medium text-gray-800 dark:text-white">Net Profit</span>
-                                <span class="font-bold text-emerald-600 dark:text-emerald-400">PKR
+                                <span class="font-bold text-emerald-600 dark:text-emerald-400">
                                     {{ number_format($stats['totalRevenue'] - $stats['totalExpenses']) }}</span>
                             </div>
                         </div>
