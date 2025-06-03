@@ -1,4 +1,4 @@
-# OSC Corporation - Business Management System
+# OSC Corporation - Resource Planning
 
 A comprehensive platform designed to help businesses manage their organizations, track financial transactions, and maintain relationships with vendors and clients.
 
