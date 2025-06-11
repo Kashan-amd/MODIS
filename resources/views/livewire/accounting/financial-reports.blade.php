@@ -10,7 +10,7 @@ use Illuminate\Support\Collection;
 new class extends Component {
     // Report Settings
     public $organization_id = '';
-    public $report_type = 'income-statement';
+    public $report_type = 'trial-balance'; // Default to Trial Balance
     public $start_date;
     public $end_date;
     public $report_data;
@@ -36,8 +36,6 @@ new class extends Component {
             $this->report_data = $this->generateIncomeStatement();
         } elseif ($reportType === 'balance-sheet') {
             $this->report_data = $this->generateBalanceSheet();
-        } elseif ($reportType === 'cash-flow') {
-            $this->report_data = $this->generateCashFlow();
         } elseif ($reportType === 'trial-balance') {
             $this->report_data = $this->generateTrialBalance();
         }
@@ -162,49 +160,6 @@ new class extends Component {
         ];
     }
 
-    protected function generateCashFlow()
-    {
-        // This is a simplified cash flow statement
-        // For a complete implementation, you would need to classify transactions properly
-
-        // Get cash accounts
-        $cashAccounts = Account::where('type', 'asset')->where('organization_id', $this->organization_id)->where('is_active', true)->where('name', 'like', '%cash%')->orWhere('name', 'like', '%bank%')->get();
-
-        if ($cashAccounts->isEmpty()) {
-            return [
-                'title' => 'Cash Flow Statement',
-                'period' => Carbon::parse($this->start_date)->format('M d, Y') . ' to ' . Carbon::parse($this->end_date)->format('M d, Y'),
-                'error' => 'No cash accounts found. Please create at least one cash account.',
-            ];
-        }
-
-        $cashFlowItems = [];
-        $totalCashFlow = 0;
-
-        foreach ($cashAccounts as $account) {
-            $startingBalance = $this->getAccountBalance($account->id, $this->start_date);
-            $endingBalance = $this->getAccountBalance($account->id, $this->end_date);
-            $netChange = $endingBalance - $startingBalance;
-
-            $cashFlowItems[] = [
-                'account_number' => $account->account_number,
-                'name' => $account->name,
-                'starting_balance' => $startingBalance,
-                'ending_balance' => $endingBalance,
-                'net_change' => $netChange,
-            ];
-
-            $totalCashFlow += $netChange;
-        }
-
-        return [
-            'title' => 'Cash Flow Statement',
-            'period' => Carbon::parse($this->start_date)->format('M d, Y') . ' to ' . Carbon::parse($this->end_date)->format('M d, Y'),
-            'cash_flow_items' => $cashFlowItems,
-            'total_cash_flow' => $totalCashFlow,
-        ];
-    }
-
     protected function generateTrialBalance()
     {
         // Get all accounts
@@ -315,7 +270,6 @@ new class extends Component {
             'reportTypes' => [
                 'income-statement' => 'Income Statement',
                 'balance-sheet' => 'Balance Sheet',
-                'cash-flow' => 'Cash Flow Statement',
                 'trial-balance' => 'Trial Balance',
             ],
         ];
@@ -627,65 +581,6 @@ new class extends Component {
                             {{ number_format($report_data['total_liabilities_and_equity'], 2) }}</span>
                     </div>
                 </div>
-            </div>
-
-            <!-- Cash Flow Statement -->
-            @elseif($report_type === 'cash-flow')
-            <div class="space-y-6">
-                @if (isset($report_data['error']))
-                <div class="bg-red-900/20 text-red-300 p-4 rounded-lg">
-                    {{ $report_data['error'] }}
-                </div>
-                @else
-                <!-- Cash Flow Table -->
-                <div class="bg-indigo-900/20 rounded-lg">
-                    <table class="min-w-full divide-y divide-indigo-200/20">
-                        <thead class="bg-indigo-900/30">
-                            <tr>
-                                <th scope="col"
-                                    class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-indigo-200">
-                                    Account</th>
-                                <th scope="col"
-                                    class="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-indigo-200">
-                                    Starting Balance</th>
-                                <th scope="col"
-                                    class="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-indigo-200">
-                                    Ending Balance</th>
-                                <th scope="col"
-                                    class="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-indigo-200">
-                                    Net Change</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-indigo-200/10">
-                            @foreach ($report_data['cash_flow_items'] as $item)
-                            <tr class="hover:bg-indigo-900/20">
-                                <td class="px-6 py-4 text-sm text-indigo-300">
-                                    {{ $item['account_number'] }} - {{ $item['name'] }}</td>
-                                <td class="px-6 py-4 text-sm text-right text-indigo-300">
-                                    {{ number_format($item['starting_balance'], 2) }}</td>
-                                <td class="px-6 py-4 text-sm text-right text-indigo-300">
-                                    {{ number_format($item['ending_balance'], 2) }}</td>
-                                <td
-                                    class="px-6 py-4 text-sm text-right {{ $item['net_change'] >= 0 ? 'text-emerald-300' : 'text-red-300' }}">
-                                    {{ number_format($item['net_change'], 2) }}
-                                </td>
-                            </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
-
-                <!-- Total Cash Flow -->
-                <div class="bg-indigo-900/30 p-4 rounded-lg">
-                    <div class="flex justify-between items-center">
-                        <h3 class="text-lg font-bold text-indigo-100">Net Cash Flow</h3>
-                        <span
-                            class="text-xl font-bold {{ $report_data['total_cash_flow'] >= 0 ? 'text-emerald-300' : 'text-red-300' }}">
-                            {{ number_format($report_data['total_cash_flow'], 2) }}
-                        </span>
-                    </div>
-                </div>
-                @endif
             </div>
 
             <!-- Trial Balance -->

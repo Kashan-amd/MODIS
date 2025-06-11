@@ -40,6 +40,7 @@ Route::middleware(['auth'])->group(function ()
 
     // job booking sales route
     Volt::route('sales/job-booking', 'sales.job-booking')->name('sales.job-booking');
+    Volt::route('sales/costing', 'sales.costing')->name('sales.costing');
 });
 
 require __DIR__ . '/auth.php';

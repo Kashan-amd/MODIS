@@ -39,7 +39,7 @@
             <flux:navlist.group expandable :heading="__('Jobs')" class="hidden lg:grid" :expanded="true">
                 <flux:navlist.item icon="clipboard-document-list" :href="route('sales.job-booking')">Job Booking
                 </flux:navlist.item>
-                <flux:navlist.item icon="calculator" href="#">Costing</flux:navlist.item>
+                <flux:navlist.item icon="calculator" :href="route('sales.costing')">Costing</flux:navlist.item>
             </flux:navlist.group>
 
             <flux:navlist.group expandable :heading="__('Accounts')" class="hidden lg:grid" :expanded="true">

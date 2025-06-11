@@ -37,8 +37,14 @@ new class extends Component {
                 'string',
                 'max:255',
                 Rule::unique('chart_of_accounts', 'account_number')->where(function ($query) {
-                    return $query->where('organization_id', $this->organization_id)
-                                ->when($this->isEditing, fn($q) => $q->where('id', '!=', $this->editingAccountId));
+                    // For parent accounts, organization_id can be null, so handle that case
+                    if ($this->formMode === 'parent' && empty($this->organization_id)) {
+                        return $query->whereNull('organization_id')
+                                    ->when($this->isEditing, fn($q) => $q->where('id', '!=', $this->editingAccountId));
+                    } else {
+                        return $query->where('organization_id', $this->organization_id)
+                                    ->when($this->isEditing, fn($q) => $q->where('id', '!=', $this->editingAccountId));
+                    }
                 }),
             ],
             'name' => ['required', 'string', 'max:255'],
@@ -83,10 +89,22 @@ new class extends Component {
 
     public function saveAccount(): void
     {
-        $this->validate();
+        try {
+            $this->validate();
+        } catch (\Exception $e) {
+            $this->dispatch('account-error', 'Validation failed: ' . $e->getMessage());
+            return;
+        }
 
         try {
             $data = $this->getAccountData();
+
+            // Debug logging
+            \Log::info('Saving account', [
+                'formMode' => $this->formMode,
+                'data' => $data,
+                'isEditing' => $this->isEditing
+            ]);
 
             if ($this->isEditing) {
                 $account = Account::findOrFail($this->editingAccountId);
@@ -94,7 +112,7 @@ new class extends Component {
             } else {
                 switch ($this->formMode) {
                     case 'parent':
-                        Account::createParentAccount($data);
+                        $account = Account::createParentAccount($data);
                         break;
                     case 'child':
                         $parent = Account::findOrFail($this->parent_id);
@@ -114,6 +132,10 @@ new class extends Component {
 
             $this->resetFormAndCloseModal();
         } catch (\Exception $e) {
+            \Log::error('Error saving account', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
             $this->dispatch('account-error', 'Error saving account: ' . $e->getMessage());
         }
     }
@@ -129,7 +151,7 @@ new class extends Component {
             'current_balance' => $this->opening_balance ?: 0,
             'opening_balance' => $this->opening_balance ?: 0,
             'balance_date' => $this->balance_date,
-            'organization_id' => $this->organization_id,
+            'organization_id' => $this->organization_id ?: null,
             'level' => $this->level,
         ];
     }
@@ -248,11 +270,18 @@ new class extends Component {
         $this->formMode = $mode;
         $this->level = $level;
         $this->parent_id = null;
+
+        // For parent accounts, allow null organization_id (for head accounts)
+        if ($mode === 'parent') {
+            $this->organization_id = null;
+        }
+
         $this->modal('account-form')->show();
     }
 
     private function getAccountsQuery(): \Illuminate\Database\Eloquent\Builder
     {
+        // We'll handle the hierarchical ordering in the with() method instead
         $query = Account::query()
             ->with(['parent', 'children']);
 
@@ -264,13 +293,43 @@ new class extends Component {
             });
         }
 
-        // For tree structure, first order by parent accounts, then by level and account number
-        return $query->orderByRaw('CASE
-            WHEN parent_id IS NULL THEN account_number
-            ELSE (SELECT a.account_number FROM chart_of_accounts a WHERE a.id = chart_of_accounts.parent_id)
-            END')
-            ->orderBy('level')
-            ->orderBy('account_number');
+        // Simple ordering by account number for now
+        return $query->orderBy('account_number');
+    }
+
+    private function getHierarchicalAccounts()
+    {
+        $allAccounts = $this->getAccountsQuery()->get();
+
+        if ($this->searchQuery) {
+            // If searching, return flat results
+            return $allAccounts;
+        }
+
+        $hierarchical = collect();
+
+        // Get all parent accounts first
+        $parents = $allAccounts->where('level', 0)->sortBy('account_number');
+
+        foreach ($parents as $parent) {
+            $hierarchical->push($parent);
+
+            // Get children of this parent
+            $children = $allAccounts->where('parent_id', $parent->id)->sortBy('account_number');
+
+            foreach ($children as $child) {
+                $hierarchical->push($child);
+
+                // Get grandchildren of this child
+                $grandchildren = $allAccounts->where('parent_id', $child->id)->sortBy('account_number');
+
+                foreach ($grandchildren as $grandchild) {
+                    $hierarchical->push($grandchild);
+                }
+            }
+        }
+
+        return $hierarchical;
     }
 
     private function getOrganizations(): Collection
@@ -295,7 +354,7 @@ new class extends Component {
     public function with(): array
     {
         return [
-            'accounts' => $this->getAccountsQuery()->paginate(20),
+            'accounts' => $this->getAccountsQuery()->paginate(100),
             'organizations' => $this->getOrganizations(),
             'accountTypes' => $this->getAccountTypes(),
             'validParents' => $this->getValidParents(),
@@ -657,11 +716,11 @@ new class extends Component {
                                         Edit
                                     </flux:button>
 
-                                    <flux:button size="xs" variant="danger"
+                                    {{-- <flux:button size="xs" variant="danger"
                                         wire:confirm="Are you sure you want to delete this account? This action cannot be undone if the account has transactions."
                                         wire:click="deleteAccount({{ $account->id }})">
                                         Delete
-                                    </flux:button>
+                                    </flux:button> --}}
                                 </div>
                             </td>
                         </tr>
