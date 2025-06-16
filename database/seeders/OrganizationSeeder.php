@@ -15,9 +15,10 @@ class OrganizationSeeder extends Seeder
         // Create sample organizations
         $organizations = [
             'OSC',
-            'Amaya LHR',
+            'Herzberg Technologies (Pvt) ltd',
+            'Amaya Lahore',
             'Amaya Burban',
-            'Event Management',
+            'Event Pro (Pvt) ltd',
             'IHC'
         ];
 

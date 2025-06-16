@@ -3,6 +3,8 @@
 use Livewire\Volt\Component;
 use App\Models\Account;
 use App\Models\Organization;
+use App\Models\Client;
+use App\Models\Vendor;
 use Livewire\WithPagination;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
@@ -16,18 +18,21 @@ new class extends Component {
     public $type = '';
     public $description = '';
     public $is_active = true;
-    public $current_balance = 0.00;
-    public $opening_balance = 0.00;
+    public $current_balance = 0.0;
+    public $opening_balance = 0.0;
     public $balance_date = '';
     public $organization_id = '';
     public $parent_id = null;
     public $level = 0;
+    public $client_id = null; // For linking clients to receivable accounts
+    public $vendor_id = null; // For linking vendors to payable accounts
 
     // UI State
     public $editingAccountId = null;
     public $isEditing = false;
     public $searchQuery = '';
     public $formMode = 'parent'; // parent, child, grandchild
+    public $organizationFilter = null; // New property for filtering by organization
 
     protected function rules(): array
     {
@@ -39,11 +44,9 @@ new class extends Component {
                 Rule::unique('chart_of_accounts', 'account_number')->where(function ($query) {
                     // For parent accounts, organization_id can be null, so handle that case
                     if ($this->formMode === 'parent' && empty($this->organization_id)) {
-                        return $query->whereNull('organization_id')
-                                    ->when($this->isEditing, fn($q) => $q->where('id', '!=', $this->editingAccountId));
+                        return $query->whereNull('organization_id')->when($this->isEditing, fn($q) => $q->where('id', '!=', $this->editingAccountId));
                     } else {
-                        return $query->where('organization_id', $this->organization_id)
-                                    ->when($this->isEditing, fn($q) => $q->where('id', '!=', $this->editingAccountId));
+                        return $query->where('organization_id', $this->organization_id)->when($this->isEditing, fn($q) => $q->where('id', '!=', $this->editingAccountId));
                     }
                 }),
             ],
@@ -53,18 +56,10 @@ new class extends Component {
             'is_active' => ['boolean'],
             'opening_balance' => ['nullable', 'numeric'],
             'balance_date' => ['nullable', 'date'],
-            'organization_id' => [
-                Rule::when($this->formMode !== 'parent',
-                    ['required', 'exists:organizations,id'],
-                    ['nullable', 'exists:organizations,id']
-                )
-            ],
-            'parent_id' => [
-                Rule::when($this->formMode !== 'parent',
-                    ['required', 'exists:chart_of_accounts,id'],
-                    ['nullable']
-                ),
-            ],
+            'organization_id' => [Rule::when($this->formMode !== 'parent', ['required', 'exists:organizations,id'], ['nullable', 'exists:organizations,id'])],
+            'parent_id' => [Rule::when($this->formMode !== 'parent', ['required', 'exists:chart_of_accounts,id'], ['nullable'])],
+            'client_id' => [Rule::when($this->isReceivableAccount(), ['required', 'exists:clients,id'], ['nullable'])],
+            'vendor_id' => [Rule::when($this->isPayableAccount(), ['required', 'exists:vendors,id'], ['nullable'])],
             'level' => ['required', 'integer', 'min:0', 'max:2'],
         ];
     }
@@ -103,7 +98,7 @@ new class extends Component {
             \Log::info('Saving account', [
                 'formMode' => $this->formMode,
                 'data' => $data,
-                'isEditing' => $this->isEditing
+                'isEditing' => $this->isEditing,
             ]);
 
             if ($this->isEditing) {
@@ -116,28 +111,101 @@ new class extends Component {
                         break;
                     case 'child':
                         $parent = Account::findOrFail($this->parent_id);
-                        $parent->createChildAccount($data);
+                        $account = $parent->createChildAccount($data);
                         break;
                     case 'grandchild':
                         $parent = Account::findOrFail($this->parent_id);
-                        $parent->createGrandchildAccount($data);
+                        $account = $parent->createGrandchildAccount($data);
                         break;
+                }
+
+                // If this is a receivable account and a client is selected, link them
+                if ($this->isReceivableAccount() && $this->client_id && isset($account)) {
+                    $client = Client::findOrFail($this->client_id);
+                    $client->update(['account_number' => $account->account_number]);
+                }
+
+                // If this is a payable account and a vendor is selected, link them
+                if ($this->isPayableAccount() && $this->vendor_id && isset($account)) {
+                    $vendor = Vendor::findOrFail($this->vendor_id);
+                    $vendor->update(['account_number' => $account->account_number]);
                 }
             }
 
-            $this->dispatch(
-                $this->isEditing ? 'account-updated' : 'account-created',
-                'Account ' . ($this->isEditing ? 'updated' : 'created') . ' successfully!'
-            );
+            $this->dispatch($this->isEditing ? 'account-updated' : 'account-created', 'Account ' . ($this->isEditing ? 'updated' : 'created') . ' successfully!');
 
             $this->resetFormAndCloseModal();
         } catch (\Exception $e) {
             \Log::error('Error saving account', [
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
             $this->dispatch('account-error', 'Error saving account: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Check if the current account being created is a receivable account
+     */
+    private function isReceivableAccount(): bool
+    {
+        if (!$this->parent_id) {
+            return false;
+        }
+
+        try {
+            $parent = Account::find($this->parent_id);
+            if (!$parent) {
+                return false;
+            }
+
+            // Check if the parent account is "Accounts Receivable" (account number typically starts with 12)
+            // or if the account name contains "receivable"
+            return str_contains(strtolower($parent->name), 'receivable') ||
+                   str_starts_with($parent->account_number, '04');
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
+
+    /**
+     * Get all clients for the client selection dropdown
+     */
+    private function getClients(): Collection
+    {
+        return Client::whereNull('account_number')->orderBy('name')->get();
+    }
+
+    /**
+     * Check if the current account being created is a payable account
+     */
+    private function isPayableAccount(): bool
+    {
+        if (!$this->parent_id) {
+            return false;
+        }
+
+        try {
+            $parent = Account::find($this->parent_id);
+            if (!$parent) {
+                return false;
+            }
+
+            // Check if the parent account is "Accounts Payable" (account number starts with 20)
+            // or if the account name contains "payable"
+            return str_contains(strtolower($parent->name), 'payable') ||
+                   str_starts_with($parent->account_number, '20');
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
+
+    /**
+     * Get all vendors for the vendor selection dropdown
+     */
+    private function getVendors(): Collection
+    {
+        return Vendor::whereNull('account_number')->orderBy('name')->get();
     }
 
     private function getAccountData(): array
@@ -164,11 +232,11 @@ new class extends Component {
             $this->editingAccountId = $accountId;
 
             // Determine form mode based on level
-            $this->formMode = match($account->level) {
+            $this->formMode = match ($account->level) {
                 Account::LEVEL_PARENT => 'parent',
                 Account::LEVEL_CHILD => 'child',
                 Account::LEVEL_GRANDCHILD => 'grandchild',
-                default => 'parent'
+                default => 'parent',
             };
 
             $this->loadAccountData($account);
@@ -215,6 +283,21 @@ new class extends Component {
         ]);
     }
 
+    /**
+     * Handle client selection - auto-populate account name
+     */
+    public function updatedClientId($value): void
+    {
+        if ($value && $this->isReceivableAccount()) {
+            try {
+                $client = Client::findOrFail($value);
+                $this->name = $client->business_name ?: $client->name;
+            } catch (\Exception $e) {
+                // Ignore error, user can manually enter name
+            }
+        }
+    }
+
     public function updatedParentId($value): void
     {
         if ($this->formMode !== 'parent' && $value) {
@@ -240,10 +323,7 @@ new class extends Component {
 
     public function resetForm(): void
     {
-        $this->reset([
-            'account_number', 'name', 'type', 'description', 'is_active',
-            'current_balance', 'opening_balance', 'editingAccountId', 'isEditing', 'parent_id', 'level'
-        ]);
+        $this->reset(['account_number', 'name', 'type', 'description', 'is_active', 'current_balance', 'opening_balance', 'editingAccountId', 'isEditing', 'parent_id', 'level', 'client_id', 'vendor_id']);
 
         $this->balance_date = now()->format('Y-m-d');
         $this->resetValidation();
@@ -282,14 +362,26 @@ new class extends Component {
     private function getAccountsQuery(): \Illuminate\Database\Eloquent\Builder
     {
         // We'll handle the hierarchical ordering in the with() method instead
-        $query = Account::query()
-            ->with(['parent', 'children']);
+        $query = Account::query()->with(['parent', 'children', 'organization']);
 
         if ($this->searchQuery) {
             $query->where(function ($q) {
                 $q->where('name', 'like', "%{$this->searchQuery}%")
-                  ->orWhere('account_number', 'like', "%{$this->searchQuery}%")
-                  ->orWhere('description', 'like', "%{$this->searchQuery}%");
+                    ->orWhere('account_number', 'like', "%{$this->searchQuery}%")
+                    // ->orWhere('type', 'like', "%{$this->searchQuery}%")
+                    ->orWhere('description', 'like', "%{$this->searchQuery}%");
+            });
+        }
+
+        // Filter by organization if set
+        if ($this->organizationFilter) {
+            $query->where(function($q) {
+                $q->where('organization_id', $this->organizationFilter)
+                  // Also include parent accounts (level 0) that might be associated with any organization
+                  ->orWhere(function($subQuery) {
+                      $subQuery->where('level', 0)
+                               ->whereNull('organization_id');
+                  });
             });
         }
 
@@ -358,7 +450,15 @@ new class extends Component {
             'organizations' => $this->getOrganizations(),
             'accountTypes' => $this->getAccountTypes(),
             'validParents' => $this->getValidParents(),
+            'clients' => $this->getClients(),
+            'vendors' => $this->getVendors(),
         ];
+    }
+
+    public function updatedOrganizationFilter(): void
+    {
+        // Reset pagination when changing organization filter
+        $this->resetPage();
     }
 }; ?>
 
@@ -412,11 +512,15 @@ new class extends Component {
                         <div class="border-b border-indigo-200/20 pb-6">
                             <h3 class="text-lg font-medium text-indigo-100">
                                 @if ($isEditing)
-                                Edit {{ ucfirst($formMode) === 'Parent' ? 'Head' : (ucfirst($formMode) === 'Child'
-                                ? 'Sub' : 'Sub Item') }} Account
+                                Edit
+                                {{ ucfirst($formMode) === 'Parent' ? 'Head' : (ucfirst($formMode) === 'Child' ? 'Sub' :
+                                'Sub Item') }}
+                                Account
                                 @else
-                                New {{ ucfirst($formMode) === 'Parent' ? 'Head' : (ucfirst($formMode) === 'Child'
-                                ? 'Sub' : 'Sub Item') }} Account
+                                New
+                                {{ ucfirst($formMode) === 'Parent' ? 'Head' : (ucfirst($formMode) === 'Child' ? 'Sub' :
+                                'Sub Item') }}
+                                Account
                                 @endif
                                 <span class="text-sm text-indigo-300 ml-2">(Level {{ $level }})</span>
                             </h3>
@@ -475,7 +579,7 @@ new class extends Component {
                                         @if ($formMode !== 'parent')
                                         <span class="text-red-400">*</span>
                                         @else
-                                        <span class="text-xs text-gray-500">(Optional for parents)</span>
+                                        <span class="text-xs text-gray-500">(Global for parents)</span>
                                         @endif
                                     </label>
                                     <flux:select id="organization_id" wire:model="organization_id"
@@ -486,16 +590,67 @@ new class extends Component {
                                         @else
                                         <flux:select.option value="">Select Organization
                                         </flux:select.option>
-                                        @endif
+
                                         @foreach ($organizations as $organization)
                                         <flux:select.option value="{{ $organization->id }}">
                                             {{ $organization->name }}</flux:select.option>
                                         @endforeach
+                                        @endif
                                     </flux:select>
                                     @error('organization_id')
                                     <span class="text-red-500 text-xs">{{ $message }}</span>
                                     @enderror
                                 </div>
+
+                                <!-- Client Selection for Receivable Accounts -->
+                                @if ($this->isReceivableAccount())
+                                <div>
+                                    <label for="client_id" class="block text-sm font-medium text-indigo-100">
+                                        Client <span class="text-red-400">*</span>
+                                    </label>
+                                    <flux:select id="client_id" wire:model="client_id"
+                                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                        <flux:select.option value="">Select Client</flux:select.option>
+                                        @foreach ($clients as $client)
+                                        <flux:select.option value="{{ $client->id }}">
+                                            {{ $client->name }}{{ $client->business_name ? ' (' . $client->business_name
+                                            . ')' : '' }}
+                                        </flux:select.option>
+                                        @endforeach
+                                    </flux:select>
+                                    @error('client_id')
+                                    <span class="text-red-500 text-xs">{{ $message }}</span>
+                                    @enderror
+                                    <div class="mt-1 text-xs text-indigo-300">
+                                        This client will be linked to the receivable account
+                                    </div>
+                                </div>
+                                @endif
+
+                                <!-- Vendor Selection for Payable Accounts -->
+                                @if ($this->isPayableAccount())
+                                <div>
+                                    <label for="vendor_id" class="block text-sm font-medium text-indigo-100">
+                                        Vendor <span class="text-red-400">*</span>
+                                    </label>
+                                    <flux:select id="vendor_id" wire:model="vendor_id"
+                                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                        <flux:select.option value="">Select Vendor</flux:select.option>
+                                        @foreach ($vendors as $vendor)
+                                        <flux:select.option value="{{ $vendor->id }}">
+                                            {{ $vendor->name }}{{ $vendor->business_name ? ' (' . $vendor->business_name
+                                            . ')' : '' }}
+                                        </flux:select.option>
+                                        @endforeach
+                                    </flux:select>
+                                    @error('vendor_id')
+                                    <span class="text-red-500 text-xs">{{ $message }}</span>
+                                    @enderror
+                                    <div class="mt-1 text-xs text-indigo-300">
+                                        This vendor will be linked to the payable account
+                                    </div>
+                                </div>
+                                @endif
                             </div>
 
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
@@ -591,11 +746,23 @@ new class extends Component {
         <!-- Accounts List -->
         <x-glass-card colorScheme="indigo" class="backdrop-blur-sm">
             <div class="flex flex-col md:flex-row md:items-center justify-between mb-6">
-                <div class="flex items-center space-x-2 mb-4 md:mb-0">
-                    <flux:input type="text" wire:model.live.debounce.300ms="searchQuery"
-                        class="block w-full rounded-lg border-0 focus:ring-2 focus:ring-indigo-500"
-                        placeholder="Search accounts...">
-                    </flux:input>
+                <div class="flex flex-col md:flex-row md:items-center space-y-4 md:space-y-0 md:space-x-4 mb-4 md:mb-0">
+                    <div class="w-full md:w-64">
+                        <flux:input type="text" wire:model.live.debounce.300ms="searchQuery"
+                            class="block w-full rounded-lg border-0 focus:ring-2 focus:ring-indigo-500"
+                            placeholder="Search accounts...">
+                        </flux:input>
+                    </div>
+                    <div class="w-full md:w-64">
+                        <flux:select wire:model.live="organizationFilter"
+                            class="block w-full rounded-lg border-0 focus:ring-2 focus:ring-indigo-500">
+                            <flux:select.option value="">All Organizations</flux:select.option>
+                            @foreach ($organizations as $organization)
+                            <flux:select.option value="{{ $organization->id }}">{{ $organization->name }}
+                            </flux:select.option>
+                            @endforeach
+                        </flux:select>
+                    </div>
                 </div>
                 <div class="flex items-center">
                     <span class="text-sm text-indigo-300 mr-2">{{ $accounts->total() }}
@@ -623,6 +790,12 @@ new class extends Component {
                                 class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-indigo-100">
                                 <div class="flex items-center space-x-1">
                                     <span>Type</span>
+                                </div>
+                            </th>
+                            <th scope="col"
+                                class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-indigo-100">
+                                <div class="flex items-center space-x-1">
+                                    <span>Organization</span>
                                 </div>
                             </th>
                             <th scope="col"
@@ -691,6 +864,15 @@ new class extends Component {
                                 </span>
                             </td>
                             <td class="px-6 py-4 text-sm text-indigo-200">
+                                @if ($account->organization)
+                                {{ $account->organization->name }}
+                                @elseif ($account->level === 0)
+                                <span class="text-indigo-400 text-xs">Global Account</span>
+                                @else
+                                <span class="text-indigo-400 text-xs">—</span>
+                                @endif
+                            </td>
+                            <td class="px-6 py-4 text-sm text-indigo-200">
                                 <div class="font-medium">{{ $account->formatted_opening_balance }}</div>
                             </td>
                             <td class="px-6 py-4 text-sm text-indigo-200">
@@ -736,9 +918,15 @@ new class extends Component {
                                     </div>
                                     <h3 class="text-xl font-medium text-slate-800 dark:text-slate-200">No accounts
                                         found</h3>
-                                    <p class="mt-2 text-slate-500 dark:text-slate-400 max-w-sm">Get started by
-                                        creating
-                                        your chart of accounts using the "New Account" button above.</p>
+                                    <p class="mt-2 text-slate-500 dark:text-slate-400 max-w-sm">
+                                        @if($organizationFilter || $searchQuery)
+                                        No accounts match your current filters. Try adjusting your search or
+                                        organization filter.
+                                        @else
+                                        Get started by creating your chart of accounts using the "New Account" button
+                                        above.
+                                        @endif
+                                    </p>
                                 </div>
                             </td>
                         </tr>

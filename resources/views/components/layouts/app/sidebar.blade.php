@@ -33,7 +33,7 @@
                 </flux:navlist.item>
                 <flux:navlist.item icon="banknotes" :href="route('admin.opening-balances')">Opening Balances
                 </flux:navlist.item>
-                <flux:navlist.item icon="circle-stack" href="#">Banks</flux:navlist.item>
+                {{-- <flux:navlist.item icon="circle-stack" href="#">Banks</flux:navlist.item> --}}
             </flux:navlist.group>
 
             <flux:navlist.group expandable :heading="__('Jobs')" class="hidden lg:grid" :expanded="true">

@@ -7,6 +7,7 @@ use App\Models\Client;
 use App\Models\Vendor;
 use App\Models\Organization;
 use App\Models\Item;
+use App\Models\Account;
 use Livewire\WithPagination;
 use Illuminate\Support\Collection;
 
@@ -27,14 +28,58 @@ new class extends Component {
     // Job Costing items
     public $items = [];
 
+    // Available sub-accounts and sub-items
+    public $subAccounts = [];
+    public $subItems = [];
+
     // Edit mode
     public $editingJobId = null;
     public $isEditing = false;
     public $searchQuery = '';
 
+    // View details mode
+    public $viewingJobId = null;
+    public $isViewingDetails = false;
+    public $viewingJob = null;
+
     public function mount()
     {
         $this->resetItemsForm();
+        $this->loadSubAccounts();
+    }
+
+    public function loadSubAccounts()
+    {
+        // Get Cost of Goods Sold main account
+        $cogsAccount = Account::where('name', 'Cost of Goods Sold')
+            ->orWhere('account_number', '80')
+            ->first();
+
+        if ($cogsAccount) {
+            // Get all sub-accounts under Cost of Goods Sold
+            $this->subAccounts = Account::where('parent_id', $cogsAccount->id)
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->get();
+        }
+    }
+
+    public function getSubItemsForAccount($accountId)
+    {
+        // Debug: Log the account ID being queried
+        \Log::info('Getting sub-items for account ID: ' . $accountId);
+
+        // Get sub-items (children) for the selected sub-account
+        $subItems = Account::where('parent_id', $accountId)
+            ->where('is_active', true)
+            ->orderBy('account_number')
+            ->get();
+
+        // Debug: Log the results
+        \Log::info('Found sub-items: ' . $subItems->count());
+        \Log::info('Sub-items: ' . $subItems->pluck('name', 'id')->toJson());
+
+        return $subItems;
     }
 
     protected function rules()
@@ -49,7 +94,8 @@ new class extends Component {
             'gst' => 'boolean',
             'items' => 'required|array|min:1',
             'items.*.vendor_id' => 'required|exists:vendors,id',
-            'items.*.item_id' => 'required|exists:items,id',
+            'items.*.sub_account_id' => 'required|exists:chart_of_accounts,id',
+            'items.*.sub_item_id' => 'required|exists:chart_of_accounts,id',
             'items.*.quantity' => 'required|integer|min:1',
             'items.*.rate' => 'required|numeric|min:0',
             'items.*.total_amount' => 'required|numeric|min:0',
@@ -60,7 +106,9 @@ new class extends Component {
     {
         $this->items[] = [
             'vendor_id' => '',
-            'item_id' => '',
+            'sub_account_id' => '',
+            'sub_item_id' => '',
+            'account_number' => '',
             'quantity' => 1,
             'rate' => 0,
             'total_amount' => 0,
@@ -71,6 +119,26 @@ new class extends Component {
     {
         unset($this->items[$index]);
         $this->items = array_values($this->items);
+    }
+
+    public function updatedItems($value, $key)
+    {
+        // Extract the index and field from the key (e.g., "0.sub_account_id")
+        $keyParts = explode('.', $key);
+        $index = $keyParts[0];
+        $field = $keyParts[1] ?? null;
+
+        if ($field === 'sub_account_id' && $value) {
+            // Clear sub_item_id when sub_account changes
+            $this->items[$index]['sub_item_id'] = '';
+            $this->items[$index]['account_number'] = '';
+        } elseif ($field === 'sub_item_id' && $value) {
+            // Update account number when sub_item is selected
+            $subItem = Account::find($value);
+            if ($subItem) {
+                $this->items[$index]['account_number'] = $subItem->account_number;
+            }
+        }
     }
 
     public function calculateTotal($index)
@@ -102,10 +170,18 @@ new class extends Component {
             $jobBooking->jobCostings()->delete();
 
             foreach ($this->items as $item) {
+                // Get the sub-item account details
+                $subItem = Account::find($item['sub_item_id']);
+                $subAccount = Account::find($item['sub_account_id']);
+
                 JobCosting::create([
                     'job_id' => $jobBooking->id,
                     'vendor_id' => $item['vendor_id'],
-                    'item_id' => $item['item_id'],
+                    'sub_account_id' => $item['sub_account_id'],
+                    'sub_item_id' => $item['sub_item_id'],
+                    'account_number' => $item['account_number'],
+                    'sub_account_name' => $subAccount ? $subAccount->name : '',
+                    'sub_item_name' => $subItem ? $subItem->name : '',
                     'quantity' => $item['quantity'],
                     'rate' => $item['rate'],
                     'total_amount' => $item['total_amount'],
@@ -131,10 +207,18 @@ new class extends Component {
             ]);
 
             foreach ($this->items as $item) {
+                // Get the sub-item account details
+                $subItem = Account::find($item['sub_item_id']);
+                $subAccount = Account::find($item['sub_account_id']);
+
                 JobCosting::create([
                     'job_id' => $jobBooking->id,
                     'vendor_id' => $item['vendor_id'],
-                    'item_id' => $item['item_id'],
+                    'sub_account_id' => $item['sub_account_id'],
+                    'sub_item_id' => $item['sub_item_id'],
+                    'account_number' => $item['account_number'],
+                    'sub_account_name' => $subAccount ? $subAccount->name : '',
+                    'sub_item_name' => $subItem ? $subItem->name : '',
                     'quantity' => $item['quantity'],
                     'rate' => $item['rate'],
                     'total_amount' => $item['total_amount'],
@@ -169,7 +253,9 @@ new class extends Component {
         foreach ($jobBooking->jobCostings as $costing) {
             $this->items[] = [
                 'vendor_id' => $costing->vendor_id,
-                'item_id' => $costing->item_id,
+                'sub_account_id' => $costing->sub_account_id ?? '',
+                'sub_item_id' => $costing->sub_item_id ?? '',
+                'account_number' => $costing->account_number ?? '',
                 'quantity' => $costing->quantity,
                 'rate' => $costing->rate,
                 'total_amount' => $costing->total_amount,
@@ -177,6 +263,31 @@ new class extends Component {
         }
 
         $this->modal('job-form')->show();
+    }
+
+    public function viewJobDetails($jobId)
+    {
+        $this->isViewingDetails = true;
+        $this->viewingJobId = $jobId;
+
+        // Load the job with all related data
+        $this->viewingJob = JobBooking::with([
+            'client',
+            'organization',
+            'jobCostings.vendor',
+            'jobCostings.subAccount',
+            'jobCostings.subItem'
+        ])->find($jobId);
+
+        $this->modal('job-details')->show();
+    }
+
+    public function closeJobDetails()
+    {
+        $this->isViewingDetails = false;
+        $this->viewingJobId = null;
+        $this->viewingJob = null;
+        $this->modal('job-details')->close();
     }
 
     public function closeJob($jobId)
@@ -245,13 +356,57 @@ new class extends Component {
             })
             ->orderBy('created_at', 'desc');
 
+        // Find the Cost of Goods Sold head account (account number starting with 80)
+        $costOfGoodsSoldItems = $this->getCostOfGoodsSoldItems();
+
         return [
             'jobBookings' => $query->paginate(10),
             'clients' => Client::orderBy('name')->get(),
             'vendors' => Vendor::orderBy('name')->get(),
-            'itemsList' => Item::orderBy('name')->get(),
+            'itemsList' => $costOfGoodsSoldItems,
             'organizations' => Organization::orderBy('name')->get(),
         ];
+    }
+
+    /**
+     * Get all items from Cost of Goods Sold accounts (account number 80)
+     *
+     * @return Collection
+     */
+    private function getCostOfGoodsSoldItems(): Collection
+    {
+        // First, find the main Cost of Goods Sold account (number 80)
+        $cogsAccount = Account::where('account_number', 'like', '80%')
+            ->where('is_parent', true)
+            ->first();
+
+        if (!$cogsAccount) {
+            // Fallback to regular items if COGS account not found
+            return Item::orderBy('name')->get();
+        }
+
+        // Get all child accounts under Cost of Goods Sold
+        $cogsItems = Account::where('parent_id', $cogsAccount->id)
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get()
+            ->map(function ($account) {
+                // Transform account to match the Item interface expected by the form
+                return (object)[
+                    'id' => $account->id,
+                    'name' => $account->name . ' (' . $account->account_number . ')',
+                    'description' => $account->description,
+                    'is_account' => true,
+                    'account_number' => $account->account_number
+                ];
+            });
+
+        // If no child accounts found, fallback to regular items
+        if ($cogsItems->isEmpty()) {
+            return Item::orderBy('name')->get();
+        }
+
+        return $cogsItems;
     }
 
     public function calculateTotalBudget()
@@ -261,6 +416,13 @@ new class extends Component {
             $total += (float) ($item['total_amount'] ?? 0);
         }
         return $total;
+    }
+
+    public function fetchAccounts()
+    {
+        return Account::where('account_number', '80')
+            ->orWhere('parent_id', 80)
+            ->get();
     }
 }; ?>
 
@@ -396,7 +558,7 @@ new class extends Component {
                                     </button>
                                     @endif
 
-                                    <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+                                    <div class="grid grid-cols-1 md:grid-cols-6 gap-4">
                                         <div class="md:col-span-1">
                                             <label class="block text-sm font-medium">Vendor</label>
                                             <flux:select wire:model="items.{{ $index }}.vendor_id"
@@ -415,19 +577,53 @@ new class extends Component {
                                         </div>
 
                                         <div class="md:col-span-1">
-                                            <label class="block text-sm font-medium">Item</label>
-                                            <flux:select wire:model="items.{{ $index }}.item_id"
+                                            <label class="block text-sm font-medium">Sub Account</label>
+                                            <flux:select wire:model.live="items.{{ $index }}.sub_account_id"
                                                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                                                <flux:select.option value="">Select item</flux:select.option>
-                                                @foreach ($itemsList as $itemOption)
-                                                <flux:select.option value="{{ $itemOption->id }}">
-                                                    {{ $itemOption->name }}</flux:select.option>
+                                                <flux:select.option value="">Select sub account</flux:select.option>
+                                                @foreach ($subAccounts as $subAccount)
+                                                <flux:select.option value="{{ $subAccount->id }}">
+                                                    {{ $subAccount->name }}
+                                                </flux:select.option>
                                                 @endforeach
                                             </flux:select>
-                                            @error('items.' . $index . '.item_id')
+                                            @error('items.' . $index . '.sub_account_id')
                                             <span class="text-red-500 text-xs">{{ $message }}</span>
                                             @enderror
                                         </div>
+
+                                        <div class="md:col-span-1">
+                                            <label class="block text-sm font-medium">Sub Item</label>
+                                            <flux:select wire:model="items.{{ $index }}.sub_item_id"
+                                                wire:key="sub-item-{{ $index }}-{{ $items[$index]['sub_account_id'] ?? 'empty' }}"
+                                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                                <flux:select.option value="">Select sub item</flux:select.option>
+                                                @if(!empty($items[$index]['sub_account_id']))
+                                                @php
+                                                $subItems = App\Models\Account::where('parent_id',
+                                                $items[$index]['sub_account_id'])
+                                                ->where('is_active', true)
+                                                ->orderBy('account_number')
+                                                ->get();
+                                                @endphp
+                                                @foreach ($subItems as $subItem)
+                                                <flux:select.option value="{{ $subItem->id }}">
+                                                    {{ $subItem->name }} ({{ $subItem->account_number }})
+                                                </flux:select.option>
+                                                @endforeach
+                                                @endif
+                                            </flux:select>
+                                            @error('items.' . $index . '.sub_item_id')
+                                            <span class="text-red-500 text-xs">{{ $message }}</span>
+                                            @enderror
+                                        </div>
+
+
+                                        <input type="text" readonly hidden
+                                            wire:model="items.{{ $index }}.account_number"
+                                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm bg-gray-100">
+                                        </input>
+
 
                                         <div>
                                             <label class="block text-sm font-medium">Quantity</label>
@@ -625,13 +821,15 @@ new class extends Component {
                                 @if ($job->status === 'open')
                                 <span
                                     class="px-3 py-1 text-xs leading-5 font-semibold rounded-full bg-emerald-500/20 text-emerald-200">
-                                    <flux:icon name="lock-open" class="inline-block h-3 w-3 mr-1" />
+                                    {{--
+                                    <flux:icon name="lock-open" class="inline-block h-3 w-3 mr-1" /> --}}
                                     Open
                                 </span>
                                 @else
                                 <span
                                     class="px-3 py-1 text-xs leading-5 font-semibold rounded-full bg-slate-500/20 text-slate-200">
-                                    <flux:icon name="lock-closed" class="inline-block h-3 w-3 mr-1" />
+                                    {{--
+                                    <flux:icon name="lock-closed" class="inline-block h-3 w-3 mr-1" /> --}}
                                     Closed
                                 </span>
                                 @endif
@@ -639,9 +837,16 @@ new class extends Component {
                             <td class="px-6 py-4 text-right text-sm font-medium">
                                 <div class="flex justify-end items-center space-x-2">
                                     <flux:button size="xs" variant="primary"
+                                        wire:click="viewJobDetails({{ $job->id }})">
+                                        {{--
+                                        <flux:icon name="eye" class="h-4 w-4 mr-1" /> --}}
+                                        View
+                                    </flux:button>
+
+                                    {{-- <flux:button size="xs" variant="primary"
                                         wire:click="editJobBooking({{ $job->id }})">
                                         Edit
-                                    </flux:button>
+                                    </flux:button> --}}
 
                                     @if ($job->status === 'open')
                                     <flux:button size="xs" variant="danger" wire:click="closeJob({{ $job->id }})">
@@ -689,6 +894,296 @@ new class extends Component {
                 {{ $jobBookings->links() }}
             </div>
         </x-glass-card>
+
+        <!-- Job Details Modal -->
+        <flux:modal name="job-details" class="w-full max-w-7xl">
+            <x-glass-card colorScheme="indigo" class="overflow-hidden">
+                @if($viewingJob)
+                <div class="space-y-6">
+                    <!-- Header Section -->
+                    <div class="border-b border-slate-200/20 pb-6">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h2 class="text-2xl font-bold text-slate-100">Job Details</h2>
+                                <div class="flex items-center space-x-4 mt-2">
+                                    <span class="text-lg font-semibold text-blue-300">{{ $viewingJob->job_number
+                                        }}</span>
+                                    @if ($viewingJob->status === 'open')
+                                    <span
+                                        class="px-3 py-1 text-xs leading-5 font-semibold rounded-full bg-emerald-500/20 text-emerald-200">
+                                        <flux:icon name="lock-open" class="e-block h-3 w-3 mr-1" />
+                                        Open
+                                    </span>
+                                    @else
+                                    <span
+                                        class="px-3 py-1 text-xs leading-5 font-semibold rounded-full bg-slate-500/20 text-slate-200">
+                                        <flux:icon name="lock-closed" class="inline-block h-3 w-3 mr-1" />
+                                        Closed
+                                    </span>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Basic Information -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div class="space-y-3">
+                            <h3 class="text-sm font-semibold text-slate-300 uppercase tracking-wide">Organization</h3>
+                            <div class="bg-slate-900/40 p-3 rounded-lg">
+                                <p class="text-slate-100 font-medium">{{ $viewingJob->organization->name ?? 'N/A' }}</p>
+                            </div>
+                        </div>
+
+                        <div class="space-y-3">
+                            <h3 class="text-sm font-semibold text-slate-300 uppercase tracking-wide">Client</h3>
+                            <div class="bg-slate-900/40 p-3 rounded-lg">
+                                <p class="text-slate-100 font-medium">{{ $viewingJob->client->name ?? 'N/A' }}</p>
+                            </div>
+                        </div>
+
+                        <div class="space-y-3">
+                            <h3 class="text-sm font-semibold text-slate-300 uppercase tracking-wide">Campaign</h3>
+                            <div class="bg-slate-900/40 p-3 rounded-lg">
+                                <p class="text-slate-100 font-medium">{{ $viewingJob->campaign }}</p>
+                            </div>
+                        </div>
+
+                        <div class="space-y-3">
+                            <h3 class="text-sm font-semibold text-slate-300 uppercase tracking-wide">Sales Rep</h3>
+                            <div class="bg-slate-900/40 p-3 rounded-lg">
+                                <p class="text-slate-100 font-medium">{{ $viewingJob->sale_by }}</p>
+                            </div>
+                        </div>
+
+                        <div class="space-y-3">
+                            <h3 class="text-sm font-semibold text-slate-300 uppercase tracking-wide">PO Number</h3>
+                            <div class="bg-slate-900/40 p-3 rounded-lg">
+                                <p class="text-slate-100 font-medium">{{ $viewingJob->po_number }}</p>
+                            </div>
+                        </div>
+
+                        <div class="space-y-3">
+                            <h3 class="text-sm font-semibold text-slate-300 uppercase tracking-wide">Created Date</h3>
+                            <div class="bg-slate-900/40 p-3 rounded-lg">
+                                <p class="text-slate-100 font-medium">{{ $viewingJob->created_at->format('M d, Y') }}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Budget Information -->
+                    <div class="border-t border-slate-200/20 pt-6">
+                        <h3 class="text-lg font-semibold text-slate-100 mb-4">Budget Information</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div
+                                class="bg-gradient-to-br from-blue-900/30 to-blue-800/20 p-4 rounded-lg border border-blue-500/20">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <p class="text-blue-300 text-sm font-medium">Approved Budget</p>
+                                        <p class="text-2xl font-bold text-blue-100">
+                                            @if($viewingJob->approved_budget)
+                                            PKR {{ number_format($viewingJob->approved_budget, 2) }}
+                                            @else
+                                            <span class="text-slate-400">Not Set</span>
+                                            @endif
+                                        </p>
+                                    </div>
+                                    <flux:icon name="currency-dollar" class="h-8 w-8 text-blue-400" />
+                                </div>
+                            </div>
+
+                            <div
+                                class="bg-gradient-to-br from-green-900/30 to-green-800/20 p-4 rounded-lg border border-green-500/20">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <p class="text-green-300 text-sm font-medium">Total Job Cost</p>
+                                        <p class="text-2xl font-bold text-green-100">
+                                            PKR {{ number_format($viewingJob->jobCostings->sum('total_amount'), 2) }}
+                                        </p>
+                                    </div>
+                                    <flux:icon name="calculator" class="h-8 w-8 text-green-400" />
+                                </div>
+                            </div>
+
+                            <div
+                                class="bg-gradient-to-br from-purple-900/30 to-purple-800/20 p-4 rounded-lg border border-purple-500/20">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <p class="text-purple-300 text-sm font-medium">GST Status</p>
+                                        <p class="text-xl font-bold text-purple-100">
+                                            @if($viewingJob->gst)
+                                            <span class="text-green-300">Included</span>
+                                            @else
+                                            <span class="text-slate-400">Not Included</span>
+                                            @endif
+                                        </p>
+                                    </div>
+                                    <flux:icon name="receipt-percent" class="h-8 w-8 text-purple-400" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Job Costing Items with Hierarchy -->
+                    <div class="border-t border-slate-200/20 pt-6">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="text-lg font-semibold text-slate-100">Job Costing Items</h3>
+                            <div class="text-sm text-slate-300">
+                                Total Items: {{ $viewingJob->jobCostings->count() }}
+                            </div>
+                        </div>
+
+                        @if($viewingJob->jobCostings->count() > 0)
+                        @php
+                        // Group costings by sub account for hierarchical display
+                        $groupedCostings = $viewingJob->jobCostings->groupBy('sub_account_id');
+                        @endphp
+
+                        <div class="space-y-6">
+                            @foreach($groupedCostings as $subAccountId => $costings)
+                            @php
+                            $subAccount = $costings->first()->subAccount;
+                            $subAccountTotal = $costings->sum('total_amount');
+                            @endphp
+
+                            <!-- Sub Account Header -->
+                            <div class="bg-slate-900/50 rounded-lg border border-slate-600/30">
+                                <div class="px-6 py-4 border-b border-slate-600/30">
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-center space-x-3">
+                                            <div class="w-3 h-3 bg-blue-500 rounded-full"></div>
+                                            <div>
+                                                <h4 class="text-lg font-semibold text-slate-100">
+                                                    {{ $subAccount ? $subAccount->name : 'Unknown Sub Account' }}
+                                                </h4>
+                                                @if($subAccount)
+                                                <p class="text-sm text-slate-400">Account #{{
+                                                    $subAccount->account_number }}</p>
+                                                @endif
+                                            </div>
+                                        </div>
+                                        <div class="text-right">
+                                            <p class="text-lg font-bold text-blue-300">PKR {{
+                                                number_format($subAccountTotal, 2) }}</p>
+                                            <p class="text-sm text-slate-400">{{ $costings->count() }} {{
+                                                Str::plural('item', $costings->count()) }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Sub Items -->
+                                <div class="divide-y divide-slate-600/20">
+                                    @foreach($costings as $costing)
+                                    <div class="px-6 py-4 hover:bg-slate-800/30 transition-colors">
+                                        <div class="grid grid-cols-1 md:grid-cols-6 gap-4 items-center">
+                                            <!-- Sub Item Info -->
+                                            <div class="md:col-span-2">
+                                                <div class="flex items-center space-x-2">
+                                                    <div class="w-2 h-2 bg-green-400 rounded-full"></div>
+                                                    <div>
+                                                        <p class="font-medium text-slate-100">
+                                                            {{ $costing->subItem ? $costing->subItem->name :
+                                                            $costing->sub_item_name }}
+                                                        </p>
+                                                        @if($costing->subItem)
+                                                        <p class="text-xs text-slate-400">{{
+                                                            $costing->subItem->account_number }}</p>
+                                                        @endif
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Vendor -->
+                                            <div>
+                                                <p class="text-sm text-slate-300">
+                                                    {{ $costing->vendor ? $costing->vendor->name : 'N/A' }}
+                                                </p>
+                                                <p class="text-xs text-slate-500">Vendor</p>
+                                            </div>
+
+                                            <!-- Quantity -->
+                                            <div class="text-center">
+                                                <p class="text-lg font-semibold text-slate-100">{{
+                                                    number_format($costing->quantity) }}</p>
+                                                <p class="text-xs text-slate-500">Qty</p>
+                                            </div>
+
+                                            <!-- Rate -->
+                                            <div class="text-center">
+                                                <p class="text-sm font-medium text-slate-200">PKR {{
+                                                    number_format($costing->rate, 2) }}</p>
+                                                <p class="text-xs text-slate-500">Rate</p>
+                                            </div>
+
+                                            <!-- Total -->
+                                            <div class="text-right">
+                                                <p class="text-lg font-bold text-green-300">PKR {{
+                                                    number_format($costing->total_amount, 2) }}</p>
+                                                <p class="text-xs text-slate-500">Total</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    @endforeach
+                                </div>
+                            </div>
+                            @endforeach
+                        </div>
+
+                        <!-- Grand Total -->
+                        <div
+                            class="mt-8 bg-gradient-to-r from-slate-900/60 to-slate-800/40 rounded-lg border border-slate-600/30 p-6">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <h4 class="text-xl font-bold text-slate-100">Grand Total</h4>
+                                    <p class="text-sm text-slate-400">Total cost for all items</p>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-3xl font-bold text-green-300">
+                                        PKR {{ number_format($viewingJob->jobCostings->sum('total_amount'), 2) }}
+                                    </p>
+                                    @if($viewingJob->approved_budget)
+                                    @php
+                                    $totalCost = $viewingJob->jobCostings->sum('total_amount');
+                                    $budgetVariance = $viewingJob->approved_budget - $totalCost;
+                                    $isOverBudget = $budgetVariance < 0; @endphp <p
+                                        class="text-sm {{ $isOverBudget ? 'text-red-400' : 'text-green-400' }}">
+                                        {{ $isOverBudget ? 'Over' : 'Under' }} budget by PKR {{
+                                        number_format(abs($budgetVariance), 2) }}
+                                        </p>
+                                        @endif
+                                </div>
+                            </div>
+                        </div>
+                        @else
+                        <div class="text-center py-12">
+                            <div
+                                class="w-16 h-16 mx-auto bg-slate-700/50 rounded-full flex items-center justify-center mb-4">
+                                <flux:icon name="document-text" class="w-8 h-8 text-slate-400" />
+                            </div>
+                            <h4 class="text-lg font-medium text-slate-300 mb-2">No Job Costing Items</h4>
+                            <p class="text-slate-500">This job booking doesn't have any costing items yet.</p>
+                        </div>
+                        @endif
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="border-t border-slate-200/20 pt-6">
+                        <div class="flex justify-end space-x-3">
+                            <flux:button variant="ghost" wire:click="closeJobDetails()">
+                                Close
+                            </flux:button>
+                            <flux:button variant="primary"
+                                wire:click="editJobBooking({{ $viewingJobId ?? 0 }}); closeJobDetails()">
+                                <flux:icon name="pencil" class="h-4 w-4 mr-2" />
+                                Edit Job
+                            </flux:button>
+                        </div>
+                    </div>
+                </div>
+                @endif
+            </x-glass-card>
+        </flux:modal>
 
     </div>
 </div>

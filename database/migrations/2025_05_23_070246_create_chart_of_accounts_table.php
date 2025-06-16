@@ -19,13 +19,19 @@ return new class extends Migration
             $table->string('type'); // asset, liability, equity, income, expense
             $table->text('description')->nullable();
             $table->boolean('is_active')->default(true);
-            $table->decimal('current_balance', 15, 2)->default(0.00);
-            $table->decimal('opening_balance', 15, 2)->default(0.00);
-            $table->date('balance_date')->nullable();
-            $table->foreignId('organization_id')->constrained()->cascadeOnDelete();
-            $table->timestamps();
 
-            $table->unique(['account_number', 'organization_id']);
+            $table->decimal('opening_balance', 15, 2)->default(0.00);
+            $table->decimal('debit_balance', 15, 2)->default(0.00);
+            $table->decimal('credit_balance', 15, 2)->default(0.00);
+            $table->decimal('current_balance', 15, 2)->default(0.00);
+            $table->date('balance_date')->nullable();
+
+            $table->foreignId('parent_id')->nullable()->constrained('chart_of_accounts')->cascadeOnDelete();
+            $table->unsignedTinyInteger('level')->default(0); // Hierarchy level
+            $table->boolean('is_parent')->default(false); // Indicates if this account is a parent account
+
+            $table->foreignId('organization_id')->nullable()->constrained()->cascadeOnDelete();
+            $table->timestamps();
         });
     }
 

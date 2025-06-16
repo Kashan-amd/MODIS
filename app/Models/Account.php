@@ -85,6 +85,22 @@ class Account extends Model
         return $this->hasMany(TransactionEntry::class);
     }
 
+    /**
+     * Get the client associated with this account (for receivable accounts).
+     */
+    public function client()
+    {
+        return $this->hasOne(Client::class, 'account_number', 'account_number');
+    }
+
+    /**
+     * Get the vendor associated with this account (for payable accounts).
+     */
+    public function vendor()
+    {
+        return $this->hasOne(Vendor::class, 'account_number', 'account_number');
+    }
+
     // Static Methods
     public static function getTypes(): array
     {

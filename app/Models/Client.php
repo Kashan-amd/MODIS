@@ -23,5 +23,14 @@ class Client extends Model
         'contact_person',
         'address',
         'bm_official',
+        'account_number',
     ];
+
+    /**
+     * Get the account associated with the client.
+     */
+    public function account()
+    {
+        return $this->belongsTo(Account::class, 'account_number', 'account_number');
+    }
 }
