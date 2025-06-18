@@ -23,14 +23,31 @@ class Client extends Model
         'contact_person',
         'address',
         'bm_official',
-        'account_number',
     ];
 
     /**
-     * Get the account associated with the client.
+     * Get all accounts associated with the client across organizations.
      */
-    public function account()
+    public function accounts()
     {
-        return $this->belongsTo(Account::class, 'account_number', 'account_number');
+        return $this->belongsToMany(Account::class, 'client_accounts', 'client_id', 'account_number', 'id', 'account_number')
+            ->withPivot('organization_id')
+            ->withTimestamps();
+    }
+
+    /**
+     * Get accounts for a specific organization.
+     */
+    public function accountsForOrganization($organizationId)
+    {
+        return $this->accounts()->wherePivot('organization_id', $organizationId);
+    }
+
+    /**
+     * Get the primary account for a specific organization (if needed).
+     */
+    public function primaryAccountForOrganization($organizationId)
+    {
+        return $this->accountsForOrganization($organizationId)->first();
     }
 }

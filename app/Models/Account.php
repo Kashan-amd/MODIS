@@ -86,19 +86,23 @@ class Account extends Model
     }
 
     /**
-     * Get the client associated with this account (for receivable accounts).
+     * Get the clients associated with this account.
      */
-    public function client()
+    public function clients()
     {
-        return $this->hasOne(Client::class, 'account_number', 'account_number');
+        return $this->belongsToMany(Client::class, 'client_accounts', 'account_number', 'client_id', 'account_number', 'id')
+            ->withPivot('organization_id')
+            ->withTimestamps();
     }
 
     /**
-     * Get the vendor associated with this account (for payable accounts).
+     * Get the vendors associated with this account.
      */
-    public function vendor()
+    public function vendors()
     {
-        return $this->hasOne(Vendor::class, 'account_number', 'account_number');
+        return $this->belongsToMany(Vendor::class, 'vendor_accounts', 'account_number', 'vendor_id', 'account_number', 'id')
+            ->withPivot('organization_id')
+            ->withTimestamps();
     }
 
     // Static Methods

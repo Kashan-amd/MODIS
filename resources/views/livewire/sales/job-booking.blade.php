@@ -911,13 +911,15 @@ new class extends Component {
                                     @if ($viewingJob->status === 'open')
                                     <span
                                         class="px-3 py-1 text-xs leading-5 font-semibold rounded-full bg-emerald-500/20 text-emerald-200">
-                                        <flux:icon name="lock-open" class="e-block h-3 w-3 mr-1" />
+                                        {{--
+                                        <flux:icon name="lock-open" class="e-block h-3 w-3 mr-1" /> --}}
                                         Open
                                     </span>
                                     @else
                                     <span
                                         class="px-3 py-1 text-xs leading-5 font-semibold rounded-full bg-slate-500/20 text-slate-200">
-                                        <flux:icon name="lock-closed" class="inline-block h-3 w-3 mr-1" />
+                                        {{--
+                                        <flux:icon name="lock-closed" class="inline-block h-3 w-3 mr-1" /> --}}
                                         Closed
                                     </span>
                                     @endif
@@ -943,14 +945,14 @@ new class extends Component {
                         </div>
 
                         <div class="space-y-3">
-                            <h3 class="text-sm font-semibold text-slate-300 uppercase tracking-wide">Campaign</h3>
+                            <h3 class="text-sm font-semibold text-slate-300 uppercase tracking-wide">Event</h3>
                             <div class="bg-slate-900/40 p-3 rounded-lg">
                                 <p class="text-slate-100 font-medium">{{ $viewingJob->campaign }}</p>
                             </div>
                         </div>
 
                         <div class="space-y-3">
-                            <h3 class="text-sm font-semibold text-slate-300 uppercase tracking-wide">Sales Rep</h3>
+                            <h3 class="text-sm font-semibold text-slate-300 uppercase tracking-wide">Venue</h3>
                             <div class="bg-slate-900/40 p-3 rounded-lg">
                                 <p class="text-slate-100 font-medium">{{ $viewingJob->sale_by }}</p>
                             </div>
