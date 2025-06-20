@@ -29,7 +29,7 @@ new class extends Component {
     public $filterStatus = '';
     public $filterDateFrom = '';
     public $filterDateTo = '';
-    public $filterJobId = '';
+    public $filterType = '';
 
     // View mode
     public $viewingTransactionId = null;
@@ -109,23 +109,21 @@ new class extends Component {
 
             foreach ($this->entries as $entry) {
                 $accountId = $entry['account_id'];
-                $account = Account::find($accountId);
                 $debit = floatval($entry['debit'] ?? 0);
                 $credit = floatval($entry['credit'] ?? 0);
 
-                // Calculate impact on account balance based on account type
+                // Calculate amount for transaction entry (but don't update account balance yet)
+                $account = Account::find($accountId);
                 if (in_array($account->type, ['asset', 'expense'])) {
                     // For Asset and Expense accounts:
                     // - Debit increases the balance
                     // - Credit decreases the balance
                     $amount = $debit - $credit;
-                    $account->current_balance += $amount;
                 } else {
                     // For Liability, Equity, and Income accounts:
                     // - Credit increases the balance
                     // - Debit decreases the balance
                     $amount = $credit - $debit;
-                    $account->current_balance -= $amount;
                 }
 
                 $entryData[] = [
@@ -135,18 +133,14 @@ new class extends Component {
                     'credit' => $credit,
                     'amount' => $amount,
                 ];
-
-                // Update account balance
-
-                $account->save();
             }
 
-            // Create the main transaction
+            // Create the main transaction as DRAFT
             $transaction = Transaction::create([
                 'date' => $this->date,
                 'reference' => $this->reference,
                 'description' => $this->description,
-                'status' => Transaction::STATUS_POSTED,
+                'status' => Transaction::STATUS_DRAFT,
                 'organization_id' => $this->organization_id,
                 'job_booking_id' => $this->job_booking_id ?: null,
                 'transaction_type' => 'journal',
@@ -161,7 +155,7 @@ new class extends Component {
 
             DB::commit();
 
-            $this->dispatch('journal-entry-created', 'Journal entry created successfully');
+            $this->dispatch('journal-entry-created', 'Journal entry created as draft successfully');
             $this->resetForm();
             $this->modal('journal-form')->close();
         } catch (\Exception $e) {
@@ -213,6 +207,30 @@ new class extends Component {
         }
     }
 
+    public function postTransaction($transactionId)
+    {
+        try {
+            $transaction = Transaction::findOrFail($transactionId);
+
+            // Check if transaction is already posted
+            if ($transaction->status === Transaction::STATUS_POSTED) {
+                $this->addError('general', 'Transaction is already posted');
+                return;
+            }
+
+            // Use the model method to post the transaction
+            $transaction->post();
+
+            $this->dispatch('transaction-posted', 'Transaction posted successfully');
+
+            // Refresh the transaction details
+            $this->transactionDetails = Transaction::with(['entries.account', 'organization', 'creator', 'jobBooking'])->findOrFail($transactionId);
+
+        } catch (\Exception $e) {
+            $this->addError('general', 'Error posting transaction: ' . $e->getMessage());
+        }
+    }
+
     public function resetForm()
     {
         $this->reset(['reference', 'description', 'job_booking_id', 'editingTransactionId', 'isEditing']);
@@ -247,7 +265,7 @@ new class extends Component {
 
     public function resetFilters()
     {
-        $this->reset(['searchQuery', 'filterStatus', 'filterJobId']);
+        $this->reset(['searchQuery', 'filterStatus', 'filterType']);
         $this->filterDateFrom = now()->startOfMonth()->format('Y-m-d');
         $this->filterDateTo = now()->endOfMonth()->format('Y-m-d');
     }
@@ -304,8 +322,8 @@ new class extends Component {
             ->when($this->filterDateTo, function ($query, $date) {
                 $query->whereDate('date', '<=', $date);
             })
-            ->when($this->filterJobId, function ($query, $jobId) {
-                $query->where('job_booking_id', $jobId);
+            ->when($this->filterType, function ($query, $type) {
+                $query->where('transaction_type', $type);
             })
             ->orderBy('date', 'desc');
 
@@ -379,13 +397,12 @@ new class extends Component {
                     </div>
 
                     <div class="w-full md:w-auto">
-                        <flux:select wire:model.live="filterJobId"
+                        <flux:select wire:model.live="filterType"
                             class="rounded-lg border-0 bg-indigo-900/10 focus:ring-2 focus:ring-indigo-500">
-                            <flux:select.option value="">All Jobs</flux:select.option>
-                            @foreach ($jobBookings as $job)
-                            <flux:select.option value="{{ $job->id }}">{{ $job->job_number }}
-                            </flux:select.option>
-                            @endforeach
+                            <flux:select.option value="">All Types</flux:select.option>
+                            <flux:select.option value="journal">Journal</flux:select.option>
+                            <flux:select.option value="bank">Bank</flux:select.option>
+                            <flux:select.option value="cash">Cash</flux:select.option>
                         </flux:select>
                     </div>
 
@@ -807,6 +824,17 @@ new class extends Component {
 
                     <div class="mb-6">
                         <h3 class="text-sm font-semibold text-indigo-300 mb-3">Journal Entries</h3>
+                        @if ($transactionDetails->status === 'draft')
+                        <div class="mb-4 p-3 bg-amber-900/20 border border-amber-500/30 rounded-lg">
+                            <div class="flex items-center">
+                                <flux:icon name="exclamation-triangle" class="h-5 w-5 text-amber-400 mr-2" />
+                                <p class="text-sm text-amber-200">
+                                    This transaction is in draft status and has not affected account balances yet.
+                                    Click "Post Entry" to apply the changes to account balances.
+                                </p>
+                            </div>
+                        </div>
+                        @endif
                         <div class="overflow-x-auto border border-indigo-200/20 rounded-lg">
                             <table class="min-w-full divide-y divide-indigo-200/20">
                                 <thead class="bg-indigo-900/30">
@@ -874,6 +902,14 @@ new class extends Component {
 
                     <!-- Actions -->
                     <div class="flex justify-end space-x-3 mt-6">
+                        @if ($transactionDetails->status === 'draft')
+                        <flux:button wire:click="postTransaction({{ $transactionDetails->id }})" variant="ghost"
+                            size="sm" class="inline-flex items-center"
+                            confirm-text="Are you sure you want to post this journal entry? This will affect account balances and cannot be undone."
+                            confirm-button-text="Yes, Post" cancel-button-text="No, Cancel">
+                            Post Entry
+                        </flux:button>
+                        @endif
                         <flux:button wire:click="generatePdf({{ $transactionDetails->id }})" variant="primary" size="sm"
                             class="inline-flex items-center">
                             Export PDF

@@ -136,9 +136,16 @@ class Transaction extends Model
     /**
      * Create a reversal transaction for this transaction.
      * This creates a new transaction that is the exact opposite of this one.
+     * Only posted transactions can be reversed.
      */
     public function createReversal($reference = null, $description = null): Transaction
     {
+        // Only allow reversing posted transactions
+        if ($this->status !== self::STATUS_POSTED)
+        {
+            throw new \Exception('Only posted transactions can be reversed');
+        }
+
         // Start a database transaction
         DB::beginTransaction();
 
@@ -150,9 +157,9 @@ class Transaction extends Model
                 'date' => now(),
                 'reference' => $reference ?? 'Reversal of ' . $this->reference,
                 'description' => $description ?? 'Reversal of transaction #' . $this->id . ' - ' . $this->description,
-                'status' => 'posted',
+                'status' => self::STATUS_POSTED, // Reversals are posted immediately
                 'organization_id' => $this->organization_id,
-                'created_by' => auth()->id,
+                'created_by' => auth()->id(),
             ]);
             $reversal->save();
 
@@ -168,14 +175,76 @@ class Transaction extends Model
                     'amount' => -$entry->amount,
                 ]);
 
-                // Update the account balance
+                // Update the account balance (reverse the original effect)
                 $account = Account::find($entry->account_id);
-                $account->current_balance -= $entry->amount;
+
+                // Reverse the original amount effect
+                if (in_array($account->type, ['asset', 'expense']))
+                {
+                    $account->current_balance -= $entry->amount;
+                }
+                else
+                {
+                    $account->current_balance += $entry->amount;
+                }
+
                 $account->save();
             }
 
             DB::commit();
             return $reversal;
+        }
+        catch (\Exception $e)
+        {
+            DB::rollBack();
+            throw $e;
+        }
+    }
+
+    /**
+     * Post a draft transaction and update account balances.
+     */
+    public function post(): bool
+    {
+        if ($this->status !== self::STATUS_DRAFT)
+        {
+            return false; // Can only post draft transactions
+        }
+
+        DB::beginTransaction();
+        try
+        {
+            // Update account balances
+            foreach ($this->entries as $entry)
+            {
+                $account = $entry->account;
+                $amount = $entry->amount;
+
+                // Update account balance based on account type
+                if (in_array($account->type, ['asset', 'expense']))
+                {
+                    // For Asset and Expense accounts:
+                    // - Positive amount increases the balance
+                    // - Negative amount decreases the balance
+                    $account->current_balance += $amount;
+                }
+                else
+                {
+                    // For Liability, Equity, and Income accounts:
+                    // - Positive amount decreases the balance (credit increases liability/equity/income)
+                    // - Negative amount increases the balance
+                    $account->current_balance -= $amount;
+                }
+
+                $account->save();
+            }
+
+            // Update transaction status
+            $this->status = self::STATUS_POSTED;
+            $this->save();
+
+            DB::commit();
+            return true;
         }
         catch (\Exception $e)
         {

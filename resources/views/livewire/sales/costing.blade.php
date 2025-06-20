@@ -63,7 +63,8 @@ new class extends Component {
 
                         return [
                             'id' => $costing->id,
-                            'item_name' => $costing->item->name ?? 'N/A',
+                            'sub_item_name' => $costing->subAccount->name ?? 'N/A',
+                            'sub_account_name' => $costing->subItem->name ?? 'N/A',
                             'vendor_name' => $costing->vendor->name ?? 'N/A',
                             'quantity' => $costing->quantity,
                             'estimated_rate' => $costing->rate,
@@ -230,12 +231,12 @@ new class extends Component {
                     <!-- Header Section with Gradient -->
                     <thead class="bg-gradient-to-r from-indigo-900/40 to-indigo-800/30 backdrop-blur-sm">
                         <tr>
-                            <th scope="col"
+                            {{-- <th scope="col"
                                 class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-indigo-100">
                                 <div class="flex items-center space-x-1">
                                     <span>Item</span>
                                 </div>
-                            </th>
+                            </th> --}}
                             <th scope="col"
                                 class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-indigo-100">
                                 <div class="flex items-center space-x-1">
@@ -290,9 +291,13 @@ new class extends Component {
                         @foreach ($costingItems as $index => $item)
                         <tr class="hover:bg-indigo-900/20 transition-colors duration-200">
                             <!-- Item Name -->
-                            <td class="px-6 py-4 text-sm">
-                                <div class="font-medium text-indigo-100">{{ $item['item_name'] }}</div>
-                            </td>
+                            {{-- <td class="px-6 py-4 text-sm">
+                                <div class="font-medium text-indigo-100">{{ $item['sub_item_name'] }}
+                                    @if (!empty($item['sub_account_name']))
+                                    <div class="text-xs text-indigo-300 mt-1">{{ $item['sub_account_name'] }}</div>
+                                    @endif
+                                </div>
+                            </td> --}}
 
                             <!-- Vendor Name -->
                             <td class="px-6 py-4 text-sm text-indigo-200">
@@ -383,7 +388,7 @@ new class extends Component {
                         <!-- Totals Row -->
                         <tr class="bg-indigo-900/30 font-bold border-t-2 border-indigo-400/50">
                             <td class="px-6 py-6 text-sm font-bold text-indigo-100">TOTAL</td>
-                            <td class="px-6 py-6"></td>
+                            {{-- <td class="px-6 py-6"></td> --}}
                             <td class="px-6 py-6 text-center text-indigo-200">—</td>
                             <td class="px-8 py-6 text-center border-l-2 border-r-2 border-blue-400/30 bg-blue-900/20">
                                 <div class="text-blue-200 font-bold text-xl"> {{
