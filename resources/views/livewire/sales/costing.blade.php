@@ -53,10 +53,10 @@ new class extends Component {
                 $this->costingItems = $jobBooking->jobCostings
                     ->map(function ($costing) {
                         // Initialize actual rates and notes arrays
-                        $this->actualRates[$costing->id] = $costing->actual_rate ?? $costing->rate;
+                        $this->actualRates[$costing->id] = $costing->actual_rate ?? 0;
                         $this->notes[$costing->id] = $costing->notes ?? '';
 
-                        $actualRate = $costing->actual_rate ?? $costing->rate;
+                        $actualRate = $costing->actual_rate ?? 0;
                         $actualAmount = $costing->quantity * $actualRate;
                         $difference = $actualAmount - $costing->total_amount;
                         $diffPercentage = $costing->total_amount > 0 ? round(($difference / $costing->total_amount) * 100, 2) : 0;

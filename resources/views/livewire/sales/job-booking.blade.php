@@ -27,7 +27,6 @@ new class extends Component {
 
     // Job Costing items
     public $items = [];
-
     // Available sub-accounts and sub-items
     public $subAccounts = [];
     public $subItems = [];
@@ -50,15 +49,22 @@ new class extends Component {
 
     public function loadSubAccounts()
     {
+        // Only load sub-accounts if an organization is selected
+        if (!$this->organization_id) {
+            $this->subAccounts = collect();
+            return;
+        }
+
         // Get Cost of Goods Sold main account
         $cogsAccount = Account::where('name', 'Cost of Goods Sold')
             ->orWhere('account_number', '80')
             ->first();
 
         if ($cogsAccount) {
-            // Get all sub-accounts under Cost of Goods Sold
+            // Get all sub-accounts under Cost of Goods Sold for the selected organization
             $this->subAccounts = Account::where('parent_id', $cogsAccount->id)
                 ->where('is_active', true)
+                ->organizationAccounts($this->organization_id)
                 ->orderBy('name')
                 ->get();
         }
@@ -69,9 +75,15 @@ new class extends Component {
         // Debug: Log the account ID being queried
         \Log::info('Getting sub-items for account ID: ' . $accountId);
 
-        // Get sub-items (children) for the selected sub-account
+        // Only return sub-items if organization is selected
+        if (!$this->organization_id) {
+            return collect();
+        }
+
+        // Get sub-items (children) for the selected sub-account within the organization
         $subItems = Account::where('parent_id', $accountId)
             ->where('is_active', true)
+            ->organizationAccounts($this->organization_id)
             ->orderBy('account_number')
             ->get();
 
@@ -119,6 +131,19 @@ new class extends Component {
     {
         unset($this->items[$index]);
         $this->items = array_values($this->items);
+    }
+
+    public function updatedOrganizationId()
+    {
+        // Reload sub-accounts when organization changes
+        $this->loadSubAccounts();
+
+        // Clear existing items' sub account and sub item selections
+        foreach ($this->items as $index => $item) {
+            $this->items[$index]['sub_account_id'] = '';
+            $this->items[$index]['sub_item_id'] = '';
+            $this->items[$index]['account_number'] = '';
+        }
     }
 
     public function updatedItems($value, $key)
@@ -248,6 +273,9 @@ new class extends Component {
         $this->gst = $jobBooking->gst;
         $this->status = $jobBooking->status;
 
+        // Load sub accounts for the selected organization
+        $this->loadSubAccounts();
+
         // Load job costing items
         $this->items = [];
         foreach ($jobBooking->jobCostings as $costing) {
@@ -315,6 +343,9 @@ new class extends Component {
         $this->reset(['job_number', 'campaign', 'client_id', 'organization_id', 'sale_by', 'po_number', 'approved_budget', 'gst', 'status', 'editingJobId', 'isEditing']);
         $this->resetItemsForm();
         $this->resetValidation();
+
+        // Clear sub accounts when form is reset
+        $this->subAccounts = collect();
     }
 
     public function resetItemsForm()
@@ -322,7 +353,9 @@ new class extends Component {
         $this->items = [
             [
                 'vendor_id' => '',
-                'item_id' => '',
+                'sub_account_id' => '',
+                'sub_item_id' => '',
+                'account_number' => '',
                 'quantity' => 1,
                 'rate' => 0,
                 'total_amount' => 0,
@@ -475,7 +508,7 @@ new class extends Component {
                             <div class="mt-4 grid grid-cols-1 md:grid-cols-4 gap-4">
                                 <div>
                                     <label for="organization_id" class="block text-sm font-medium">Organization</label>
-                                    <flux:select id="organization_id" wire:model="organization_id"
+                                    <flux:select id="organization_id" wire:model.live="organization_id"
                                         class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
                                         <flux:select.option value="">Select organization</flux:select.option>
                                         @foreach ($organizations as $organization)
@@ -543,9 +576,10 @@ new class extends Component {
                         <div class="border-b border-indigo-200/20 pb-6">
                             <div class="flex justify-between items-center">
                                 <h3 class="text-lg font-medium text-indigo-100">Job Costing Items</h3>
-                                <flux:button size="xs" type="button" wire:click="addItem" class="flex items-center">
+                                {{-- <flux:button size="xs" type="button" wire:click="addItem"
+                                    class="flex items-center">
                                     <span>+ Add Item</span>
-                                </flux:button>
+                                </flux:button> --}}
                             </div>
 
                             <div class="mt-4 space-y-4">
@@ -595,14 +629,16 @@ new class extends Component {
                                         <div class="md:col-span-1">
                                             <label class="block text-sm font-medium">Sub Item</label>
                                             <flux:select wire:model="items.{{ $index }}.sub_item_id"
-                                                wire:key="sub-item-{{ $index }}-{{ $items[$index]['sub_account_id'] ?? 'empty' }}"
+                                                wire:key="sub-item-{{ $index }}-{{ $items[$index]['sub_account_id'] ?? 'empty' }}-{{ $organization_id ?? 'no-org' }}"
                                                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
                                                 <flux:select.option value="">Select sub item</flux:select.option>
-                                                @if(!empty($items[$index]['sub_account_id']))
+                                                @if(!empty($items[$index]['sub_account_id']) &&
+                                                !empty($organization_id))
                                                 @php
                                                 $subItems = App\Models\Account::where('parent_id',
                                                 $items[$index]['sub_account_id'])
                                                 ->where('is_active', true)
+                                                ->organizationAccounts($organization_id)
                                                 ->orderBy('account_number')
                                                 ->get();
                                                 @endphp
@@ -665,6 +701,11 @@ new class extends Component {
                                 @error('items')
                                 <span class="text-red-500 text-xs block mt-2">{{ $message }}</span>
                                 @enderror
+                            </div>
+                            <div class="flex justify-between items-center mt-4">
+                                <flux:button size="xs" variant="primary" wire:click="addItem" class="flex items-center">
+                                    <span>+ Add Item</span>
+                                </flux:button>
                             </div>
                         </div>
 
@@ -1171,15 +1212,25 @@ new class extends Component {
 
                     <!-- Action Buttons -->
                     <div class="border-t border-slate-200/20 pt-6">
-                        <div class="flex justify-end space-x-3">
-                            <flux:button variant="ghost" wire:click="closeJobDetails()">
-                                Close
-                            </flux:button>
-                            <flux:button variant="primary"
-                                wire:click="editJobBooking({{ $viewingJobId ?? 0 }}); closeJobDetails()">
-                                <flux:icon name="pencil" class="h-4 w-4 mr-2" />
-                                Edit Job
-                            </flux:button>
+                        <div class="flex justify-between">
+                            <div>
+                                <a href="{{ route('print.client-invoice', ['jobId' => $viewingJobId]) }}"
+                                    target="_blank"
+                                    class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                                    <flux:icon name="printer" class="h-4 w-4 mr-2" />
+                                    Print Invoice
+                                </a>
+                            </div>
+                            <div class="flex space-x-3">
+                                <flux:button variant="ghost" wire:click="closeJobDetails()">
+                                    Close
+                                </flux:button>
+                                <flux:button variant="primary"
+                                    wire:click="editJobBooking({{ $viewingJobId ?? 0 }}); closeJobDetails()">
+                                    <flux:icon name="pencil" class="h-4 w-4 mr-2" />
+                                    Edit Job
+                                </flux:button>
+                            </div>
                         </div>
                     </div>
                 </div>

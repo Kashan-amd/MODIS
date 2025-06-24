@@ -41,6 +41,20 @@ Route::middleware(['auth'])->group(function ()
     // job booking sales route
     Volt::route('sales/job-booking', 'sales.job-booking')->name('sales.job-booking');
     Volt::route('sales/costing', 'sales.costing')->name('sales.costing');
+
+    // Print routes
+    Route::get('print/client-invoice/{jobId}', function ($jobId)
+    {
+        $job = \App\Models\JobBooking::with([
+            'client',
+            'organization',
+            'jobCostings.vendor',
+            'jobCostings.subAccount',
+            'jobCostings.subItem'
+        ])->findOrFail($jobId);
+
+        return view('print.client-invoice', compact('job'));
+    })->name('print.client-invoice');
 });
 
 require __DIR__ . '/auth.php';
