@@ -75,16 +75,13 @@ new class extends Component {
         // Debug: Log the account ID being queried
         \Log::info('Getting sub-items for account ID: ' . $accountId);
 
-        // Only return sub-items if organization is selected
-        if (!$this->organization_id) {
+        if (empty($accountId)) {
             return collect();
         }
 
-        // Get sub-items (children) for the selected sub-account within the organization
-        $subItems = Account::where('parent_id', $accountId)
-            ->where('is_active', true)
-            ->organizationAccounts($this->organization_id)
-            ->orderBy('account_number')
+        // Get items that belong to this COGS account
+        $subItems = Item::where('cogs_account_id', $accountId)
+            ->orderBy('name')
             ->get();
 
         // Debug: Log the results
@@ -107,7 +104,7 @@ new class extends Component {
             'items' => 'required|array|min:1',
             'items.*.vendor_id' => 'required|exists:vendors,id',
             'items.*.sub_account_id' => 'required|exists:chart_of_accounts,id',
-            'items.*.sub_item_id' => 'required|exists:chart_of_accounts,id',
+            'items.*.sub_item_id' => 'required|exists:items,id',
             'items.*.quantity' => 'required|integer|min:1',
             'items.*.rate' => 'required|numeric|min:0',
             'items.*.total_amount' => 'required|numeric|min:0',
@@ -120,7 +117,6 @@ new class extends Component {
             'vendor_id' => '',
             'sub_account_id' => '',
             'sub_item_id' => '',
-            'account_number' => '',
             'quantity' => 1,
             'rate' => 0,
             'total_amount' => 0,
@@ -142,7 +138,6 @@ new class extends Component {
         foreach ($this->items as $index => $item) {
             $this->items[$index]['sub_account_id'] = '';
             $this->items[$index]['sub_item_id'] = '';
-            $this->items[$index]['account_number'] = '';
         }
     }
 
@@ -156,13 +151,6 @@ new class extends Component {
         if ($field === 'sub_account_id' && $value) {
             // Clear sub_item_id when sub_account changes
             $this->items[$index]['sub_item_id'] = '';
-            $this->items[$index]['account_number'] = '';
-        } elseif ($field === 'sub_item_id' && $value) {
-            // Update account number when sub_item is selected
-            $subItem = Account::find($value);
-            if ($subItem) {
-                $this->items[$index]['account_number'] = $subItem->account_number;
-            }
         }
     }
 
@@ -195,8 +183,8 @@ new class extends Component {
             $jobBooking->jobCostings()->delete();
 
             foreach ($this->items as $item) {
-                // Get the sub-item account details
-                $subItem = Account::find($item['sub_item_id']);
+                // Get the sub-item and sub-account details
+                $subItem = Item::find($item['sub_item_id']);
                 $subAccount = Account::find($item['sub_account_id']);
 
                 JobCosting::create([
@@ -204,7 +192,6 @@ new class extends Component {
                     'vendor_id' => $item['vendor_id'],
                     'sub_account_id' => $item['sub_account_id'],
                     'sub_item_id' => $item['sub_item_id'],
-                    'account_number' => $item['account_number'],
                     'sub_account_name' => $subAccount ? $subAccount->name : '',
                     'sub_item_name' => $subItem ? $subItem->name : '',
                     'quantity' => $item['quantity'],
@@ -232,8 +219,8 @@ new class extends Component {
             ]);
 
             foreach ($this->items as $item) {
-                // Get the sub-item account details
-                $subItem = Account::find($item['sub_item_id']);
+                // Get the sub-item and sub-account details
+                $subItem = Item::find($item['sub_item_id']);
                 $subAccount = Account::find($item['sub_account_id']);
 
                 JobCosting::create([
@@ -241,7 +228,6 @@ new class extends Component {
                     'vendor_id' => $item['vendor_id'],
                     'sub_account_id' => $item['sub_account_id'],
                     'sub_item_id' => $item['sub_item_id'],
-                    'account_number' => $item['account_number'],
                     'sub_account_name' => $subAccount ? $subAccount->name : '',
                     'sub_item_name' => $subItem ? $subItem->name : '',
                     'quantity' => $item['quantity'],
@@ -283,7 +269,6 @@ new class extends Component {
                 'vendor_id' => $costing->vendor_id,
                 'sub_account_id' => $costing->sub_account_id ?? '',
                 'sub_item_id' => $costing->sub_item_id ?? '',
-                'account_number' => $costing->account_number ?? '',
                 'quantity' => $costing->quantity,
                 'rate' => $costing->rate,
                 'total_amount' => $costing->total_amount,
@@ -355,7 +340,6 @@ new class extends Component {
                 'vendor_id' => '',
                 'sub_account_id' => '',
                 'sub_item_id' => '',
-                'account_number' => '',
                 'quantity' => 1,
                 'rate' => 0,
                 'total_amount' => 0,
@@ -627,24 +611,24 @@ new class extends Component {
                                         </div>
 
                                         <div class="md:col-span-1">
-                                            <label class="block text-sm font-medium">Sub Item</label>
+                                            <label class="block text-sm font-medium">Item</label>
                                             <flux:select wire:model="items.{{ $index }}.sub_item_id"
-                                                wire:key="sub-item-{{ $index }}-{{ $items[$index]['sub_account_id'] ?? 'empty' }}-{{ $organization_id ?? 'no-org' }}"
+                                                wire:key="sub-item-{{ $index }}-{{ $items[$index]['sub_account_id'] ?? 'empty' }}"
                                                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                                                <flux:select.option value="">Select sub item</flux:select.option>
-                                                @if(!empty($items[$index]['sub_account_id']) &&
-                                                !empty($organization_id))
+                                                <flux:select.option value="">Select item</flux:select.option>
+                                                @if(!empty($items[$index]['sub_account_id']))
                                                 @php
-                                                $subItems = App\Models\Account::where('parent_id',
+                                                $subItems = App\Models\Item::where('cogs_account_id',
                                                 $items[$index]['sub_account_id'])
-                                                ->where('is_active', true)
-                                                ->organizationAccounts($organization_id)
-                                                ->orderBy('account_number')
+                                                ->orderBy('name')
                                                 ->get();
                                                 @endphp
                                                 @foreach ($subItems as $subItem)
                                                 <flux:select.option value="{{ $subItem->id }}">
-                                                    {{ $subItem->name }} ({{ $subItem->account_number }})
+                                                    {{ $subItem->name }}
+                                                    @if($subItem->category)
+                                                    ({{ $subItem->category }})
+                                                    @endif
                                                 </flux:select.option>
                                                 @endforeach
                                                 @endif
@@ -653,12 +637,6 @@ new class extends Component {
                                             <span class="text-red-500 text-xs">{{ $message }}</span>
                                             @enderror
                                         </div>
-
-
-                                        <input type="text" readonly hidden
-                                            wire:model="items.{{ $index }}.account_number"
-                                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm bg-gray-100">
-                                        </input>
 
 
                                         <div>
@@ -993,7 +971,7 @@ new class extends Component {
                         </div>
 
                         <div class="space-y-3">
-                            <h3 class="text-sm font-semibold text-slate-300 uppercase tracking-wide">Venue</h3>
+                            <h3 class="text-sm font-semibold text-slate-300 uppercase tracking-wide">Sale by</h3>
                             <div class="bg-slate-900/40 p-3 rounded-lg">
                                 <p class="text-slate-100 font-medium">{{ $viewingJob->sale_by }}</p>
                             </div>
@@ -1129,9 +1107,9 @@ new class extends Component {
                                                             {{ $costing->subItem ? $costing->subItem->name :
                                                             $costing->sub_item_name }}
                                                         </p>
-                                                        @if($costing->subItem)
-                                                        <p class="text-xs text-slate-400">{{
-                                                            $costing->subItem->account_number }}</p>
+                                                        @if($costing->subItem && $costing->subItem->category)
+                                                        <p class="text-xs text-slate-400">{{ $costing->subItem->category
+                                                            }}</p>
                                                         @endif
                                                     </div>
                                                 </div>

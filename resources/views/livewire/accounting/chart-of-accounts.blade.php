@@ -38,6 +38,13 @@ new class extends Component {
 
     protected function rules(): array
     {
+        // Check if this is a COGS child/grandchild account
+        $isCOGSChild = false;
+        if ($this->formMode !== 'parent' && $this->parent_id) {
+            $parent = Account::find($this->parent_id);
+            $isCOGSChild = $parent && ($parent->isCOGSAccount() || ($parent->parent && $parent->parent->isCOGSAccount()));
+        }
+
         return [
             'account_number' => [
                 'required',
@@ -53,7 +60,7 @@ new class extends Component {
             'is_active' => ['boolean'],
             'opening_balance' => ['nullable', 'numeric'],
             'balance_date' => ['nullable', 'date'],
-            'organization_id' => ['required', 'exists:organizations,id'],
+            'organization_id' => $isCOGSChild ? ['nullable'] : ['required', 'exists:organizations,id'],
             'parent_id' => [Rule::when($this->formMode !== 'parent', ['required', 'exists:chart_of_accounts,id'], ['nullable'])],
             'client_id' => [Rule::when($this->isReceivableAccount(), ['required', 'exists:clients,id'], ['nullable'])],
             'vendor_id' => [Rule::when($this->isPayableAccount(), ['required', 'exists:vendors,id'], ['nullable'])],
@@ -214,7 +221,7 @@ new class extends Component {
 
     private function getAccountData(): array
     {
-        return [
+        $data = [
             'account_number' => $this->account_number,
             'name' => $this->name,
             'type' => $this->type,
@@ -223,9 +230,19 @@ new class extends Component {
             'current_balance' => $this->opening_balance ?: 0,
             'opening_balance' => $this->opening_balance ?: 0,
             'balance_date' => $this->balance_date,
-            'organization_id' => $this->organization_id, // Always use the set organization_id
+            'organization_id' => $this->organization_id, // Default to the set organization_id
             'level' => $this->level,
         ];
+
+        // For COGS child and grandchild accounts, set organization_id to null to make them global
+        if ($this->formMode !== 'parent' && $this->parent_id) {
+            $parent = Account::find($this->parent_id);
+            if ($parent && ($parent->isCOGSAccount() || ($parent->parent && $parent->parent->isCOGSAccount()))) {
+                $data['organization_id'] = null;
+            }
+        }
+
+        return $data;
     }
 
     public function editAccount(int $accountId): void
@@ -384,6 +401,13 @@ new class extends Component {
                   ->orWhere(function($subQuery) {
                       $subQuery->where('level', 0)
                                ->whereNull('organization_id');
+                  })
+                  // Include COGS accounts (account number 80) and all its children/grandchildren for all organizations
+                  ->orWhere(function($subQuery) {
+                      $subQuery->where('account_number', 'like', '80%')
+                               ->orWhereHas('parent', function($parentQuery) {
+                                   $parentQuery->where('account_number', 'like', '80%');
+                               });
                   });
             });
         }
@@ -590,11 +614,25 @@ new class extends Component {
                                         class="mt-1 block w-full px-3 py-2 bg-indigo-900/20 border border-indigo-200/20 rounded-md text-indigo-100">
                                         @php
                                         $currentOrg = $organizations->find($this->organizationFilter);
+                                        $isCOGSChild = false;
+                                        if ($this->formMode !== 'parent' && $this->parent_id) {
+                                        $parent = App\Models\Account::find($this->parent_id);
+                                        $isCOGSChild = $parent && ($parent->isCOGSAccount() || ($parent->parent &&
+                                        $parent->parent->isCOGSAccount()));
+                                        }
                                         @endphp
+                                        @if($isCOGSChild)
+                                        <span class="text-emerald-200">Global (All Organizations)</span>
+                                        @else
                                         {{ $currentOrg ? $currentOrg->name : 'No Organization Selected' }}
+                                        @endif
                                     </div>
                                     <div class="mt-1 text-xs text-indigo-300">
+                                        @if($isCOGSChild)
+                                        COGS accounts are automatically made available to all organizations
+                                        @else
                                         Automatically set from the organization filter above
+                                        @endif
                                     </div>
                                 </div>
 
@@ -835,8 +873,10 @@ new class extends Component {
                             <td class="px-6 py-4 text-sm text-indigo-200">
                                 <div style="margin-left: {{ $account->level * 24 }}px">
                                     {{ $account->name }}
-                                    {{-- @if ($account->is_parent)
-                                    <span class="ml-2 text-xs text-indigo-400">(Parent)</span>
+                                    {{-- @if (is_null($account->organization_id))
+                                    <flux:badge color="indigo" class="mx-2" size="sm">
+                                        G
+                                    </flux:badge>
                                     @endif --}}
                                 </div>
                             </td>

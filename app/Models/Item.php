@@ -20,6 +20,7 @@ class Item extends Model
         'name',
         'description',
         'category',
+        'cogs_account_id',
     ];
 
     /**
@@ -28,5 +29,13 @@ class Item extends Model
     public function vendor()
     {
         return $this->belongsTo(Vendor::class);
+    }
+
+    /**
+     * Get the COGS account associated with this item.
+     */
+    public function cogsAccount()
+    {
+        return $this->belongsTo(Account::class, 'cogs_account_id');
     }
 }

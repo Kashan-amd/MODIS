@@ -145,6 +145,14 @@ class Account extends Model
         };
     }
 
+    /**
+     * Check if this account is a COGS (Cost of Goods Sold) account
+     */
+    public function isCOGSAccount(): bool
+    {
+        return str_starts_with($this->account_number, '80');
+    }
+
     // Query Scopes
     public function scopeActive($query)
     {
@@ -156,7 +164,16 @@ class Account extends Model
         return $query->where(function ($q) use ($organizationId)
         {
             $q->where('organization_id', $organizationId)
-                ->orWhereNull('organization_id');
+                ->orWhereNull('organization_id')
+                // Include COGS accounts (account number 80) and all its children/grandchildren for all organizations
+                ->orWhere(function ($subQuery)
+                {
+                    $subQuery->where('account_number', 'like', '80%')
+                        ->orWhereHas('parent', function ($parentQuery)
+                        {
+                            $parentQuery->where('account_number', 'like', '80%');
+                        });
+                });
         });
     }
 
@@ -419,6 +436,12 @@ class Account extends Model
         $data['parent_id'] = $this->id;
         $data['is_parent'] = true; // Child can have grandchildren
 
+        // If this is a COGS account, make child accounts global (organization_id = null)
+        if ($this->isCOGSAccount())
+        {
+            $data['organization_id'] = null;
+        }
+
         // Auto-generate child account number if not provided
         if (!isset($data['account_number']) || empty($data['account_number']))
         {
@@ -442,6 +465,12 @@ class Account extends Model
         $data['level'] = self::LEVEL_GRANDCHILD;
         $data['parent_id'] = $this->id;
         $data['is_parent'] = false; // Grandchildren cannot have children
+
+        // If this is a child of COGS account, make grandchild accounts global (organization_id = null)
+        if ($this->isCOGSAccount() || ($this->parent && $this->parent->isCOGSAccount()))
+        {
+            $data['organization_id'] = null;
+        }
 
         // Auto-generate grandchild account number if not provided
         if (!isset($data['account_number']) || empty($data['account_number']))

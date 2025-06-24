@@ -47,7 +47,7 @@ new class extends Component {
     public function loadCostingItems()
     {
         if ($this->selectedJobBookingId) {
-            $jobBooking = JobBooking::with(['jobCostings.vendor', 'jobCostings.item'])->find($this->selectedJobBookingId);
+            $jobBooking = JobBooking::with(['jobCostings.vendor', 'jobCostings.subAccount', 'jobCostings.subItem'])->find($this->selectedJobBookingId);
 
             if ($jobBooking) {
                 $this->costingItems = $jobBooking->jobCostings
@@ -63,8 +63,8 @@ new class extends Component {
 
                         return [
                             'id' => $costing->id,
-                            'sub_item_name' => $costing->subAccount->name ?? 'N/A',
-                            'sub_account_name' => $costing->subItem->name ?? 'N/A',
+                            'sub_item_name' => $costing->sub_item_name ?? 'N/A',
+                            'sub_account_name' => $costing->sub_account_name ?? 'N/A',
                             'vendor_name' => $costing->vendor->name ?? 'N/A',
                             'quantity' => $costing->quantity,
                             'estimated_rate' => $costing->rate,
@@ -302,6 +302,11 @@ new class extends Component {
                             <!-- Vendor Name -->
                             <td class="px-6 py-4 text-sm text-indigo-200">
                                 {{ $item['vendor_name'] }}
+                                <div class="font-medium text-indigo-100">
+                                    @if (!empty($item['sub_account_name']))
+                                    <div class="text-xs text-indigo-300 mt-1">{{ $item['sub_account_name'] }}</div>
+                                    @endif
+                                </div>
                             </td>
 
                             <!-- Quantity -->
