@@ -39,12 +39,12 @@
                 class="text-[15px] leading-relaxed flex-1 p-8 pb-12 lg:p-20 bg-white dark:bg-[#161615] dark:text-[#EDEDEC] shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.16)] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d] rounded-es-lg rounded-ee-lg lg:rounded-ss-lg lg:rounded-ee-none backdrop-blur-sm">
                 <h1
                     class="mb-4 font-bold text-5xl bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 bg-clip-text text-transparent">
-                    OS Corporation</h1>
+                    MODIS</h1>
             </div>
             <div
                 class="bg-[#fff2f2] dark:bg-[#1D0002] relative lg:-ms-px -mb-px lg:mb-0 rounded-t-lg lg:rounded-t-none lg:rounded-e-lg lg:aspect-auto w-full lg:w-[438px] shrink-0 overflow-hidden">
                 <div class="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent z-10"></div>
-                <img src="{{ asset('images/event.jpg') }}" alt="OS Corporation"
+                <img src="{{ asset('images/event.jpg') }}" alt="MODIS"
                     class="absolute inset-0 w-full h-full object-cover transform hover:scale-110 transition-transform duration-700 ease-in-out">
                 <div class="absolute bottom-6 left-6 z-20 text-white">
                     <h2 class="text-xl font-bold drop-shadow-md">Discover Possibilities</h2>

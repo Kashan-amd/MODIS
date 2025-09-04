@@ -5,8 +5,6 @@ use Livewire\WithPagination;
 use App\Models\PettyCash;
 use App\Models\Account;
 use App\Models\Organization;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Validation\Rule;
 
 new class extends Component {
     use WithPagination;
@@ -16,23 +14,35 @@ new class extends Component {
     public $organizations = [];
 
     // Form properties
-    public $account_id = '';
-    public $amount = '';
-    public $transaction_type = 'expense'; // expense or income
-    public $reference = '';
-    public $description = '';
+    public $account_id = "";
+    public $amount = "";
+    public $transaction_type = "expense"; // expense or income
+    public $reference = "";
+    public $description = "";
     public $transaction_date;
 
     // Filter properties
-    public $search = '';
-    public $status_filter = '';
-    public $date_from = '';
-    public $date_to = '';
-    public $account_filter = '';
+    public $search = "";
+    public $status_filter = "";
+    public $date_from = "";
+    public $date_to = "";
+    public $account_filter = "";
 
     // Modal state
     public $showForm = false;
     public $editingId = null;
+
+    public function rules()
+    {
+        return [
+            "account_id" => "required|exists:chart_of_accounts,id",
+            "amount" => "required|numeric|min:0.01",
+            "transaction_type" => "required|in:expense,income",
+            "reference" => "nullable|string|max:255",
+            "description" => "required|string|max:500",
+            "transaction_date" => "required|date",
+        ];
+    }
 
     public function mount()
     {
@@ -44,9 +54,9 @@ new class extends Component {
             $this->selectedOrganizationId = $this->organizations->first()->id;
         }
 
-        $this->transaction_date = now()->format('Y-m-d');
-        $this->date_from = now()->startOfMonth()->format('Y-m-d');
-        $this->date_to = now()->format('Y-m-d');
+        $this->transaction_date = now()->format("Y-m-d");
+        $this->date_from = now()->startOfMonth()->format("Y-m-d");
+        $this->date_to = now()->format("Y-m-d");
     }
 
     public function updatedSelectedOrganizationId()
@@ -55,52 +65,40 @@ new class extends Component {
         $this->resetPage();
     }
 
-    public function rules()
-    {
-        return [
-            'account_id' => 'required|exists:chart_of_accounts,id',
-            'amount' => 'required|numeric|min:0.01',
-            'transaction_type' => 'required|in:expense,income',
-            'reference' => 'nullable|string|max:255',
-            'description' => 'required|string|max:500',
-            'transaction_date' => 'required|date',
-        ];
-    }
-
     public function save()
     {
         $this->validate();
 
         if (!$this->selectedOrganizationId) {
-            $this->addError('organization', 'Please select an organization.');
+            $this->addError("organization", "Please select an organization.");
             return;
         }
 
         $data = [
-            'organization_id' => $this->selectedOrganizationId,
-            'account_id' => $this->account_id,
-            'reference' => $this->reference,
-            'description' => $this->description,
-            'transaction_date' => $this->transaction_date,
-            'status' => PettyCash::STATUS_DRAFT,
+            "organization_id" => $this->selectedOrganizationId,
+            "account_id" => $this->account_id,
+            "reference" => $this->reference,
+            "description" => $this->description,
+            "transaction_date" => $this->transaction_date,
+            "status" => PettyCash::STATUS_DRAFT,
         ];
 
         // Set debit/credit based on transaction type
-        if ($this->transaction_type === 'expense') {
-            $data['debit'] = $this->amount;
-            $data['credit'] = 0;
+        if ($this->transaction_type === "expense") {
+            $data["debit"] = $this->amount;
+            $data["credit"] = 0;
         } else {
-            $data['debit'] = 0;
-            $data['credit'] = $this->amount;
+            $data["debit"] = 0;
+            $data["credit"] = $this->amount;
         }
 
         if ($this->editingId) {
             $transaction = PettyCash::findOrFail($this->editingId);
             $transaction->update($data);
-            session()->flash('message', 'Petty cash transaction updated successfully.');
+            session()->flash("message", "Petty cash transaction updated successfully.");
         } else {
             PettyCash::create($data);
-            session()->flash('message', 'Petty cash transaction created successfully.');
+            session()->flash("message", "Petty cash transaction created successfully.");
         }
 
         $this->resetForm();
@@ -113,10 +111,10 @@ new class extends Component {
         $this->editingId = $id;
         $this->account_id = $transaction->account_id;
         $this->amount = $transaction->debit > 0 ? $transaction->debit : $transaction->credit;
-        $this->transaction_type = $transaction->debit > 0 ? 'expense' : 'income';
+        $this->transaction_type = $transaction->debit > 0 ? "expense" : "income";
         $this->reference = $transaction->reference;
         $this->description = $transaction->description;
-        $this->transaction_date = $transaction->transaction_date->format('Y-m-d');
+        $this->transaction_date = $transaction->transaction_date->format("Y-m-d");
 
         $this->showForm = true;
     }
@@ -126,84 +124,100 @@ new class extends Component {
         $transaction = PettyCash::findOrFail($id);
 
         if ($transaction->status === PettyCash::STATUS_POSTED) {
-            session()->flash('error', 'Cannot delete posted transactions.');
+            session()->flash("error", "Cannot delete posted transactions.");
             return;
         }
 
         $transaction->delete();
-        session()->flash('message', 'Transaction deleted successfully.');
+        session()->flash("message", "Transaction deleted successfully.");
     }
 
     public function post($id)
     {
         $transaction = PettyCash::findOrFail($id);
         $transaction->post();
-        session()->flash('message', 'Transaction posted successfully.');
+        session()->flash("message", "Transaction posted successfully.");
     }
 
     public function void($id)
     {
         $transaction = PettyCash::findOrFail($id);
         $transaction->void();
-        session()->flash('message', 'Transaction voided successfully.');
+        session()->flash("message", "Transaction voided successfully.");
     }
 
     public function resetForm()
     {
-        $this->reset(['account_id', 'amount', 'transaction_type', 'reference', 'description', 'editingId']);
-        $this->transaction_date = now()->format('Y-m-d');
+        $this->reset(["account_id", "amount", "transaction_type", "reference", "description", "editingId"]);
+        $this->transaction_date = now()->format("Y-m-d");
         $this->showForm = false;
+    }
+
+    public function getExpenseAccounts()
+    {
+        // Get accounts for dropdowns
+        $accounts = Account::where("organization_id", $this->selectedOrganizationId)
+            ->where("is_active", true)
+            ->where("type", "expense")
+            ->orderBy("account_number")
+            ->get();
+
+        return $accounts;
+    }
+
+    public function getPettyCashEntries()
+    {
+        $query = PettyCash::with(["account", "organization"])->where("organization_id", $this->selectedOrganizationId);
+
+        // Apply filters
+        if ($this->search) {
+            $query->where(function ($q) {
+                $q->where("reference", "like", "%" . $this->search . "%")
+                    ->orWhere("description", "like", "%" . $this->search . "%")
+                    ->orWhereHas("account", function ($subq) {
+                        $subq->where("name", "like", "%" . $this->search . "%");
+                    });
+            });
+        }
+
+        return $query;
+    }
+
+    public function filters($entries)
+    {
+        if ($this->status_filter) {
+            $entries->where("status", $this->status_filter);
+        }
+
+        if ($this->date_from) {
+            $entries->whereDate("transaction_date", ">=", $this->date_from);
+        }
+
+        if ($this->date_to) {
+            $entries->whereDate("transaction_date", "<=", $this->date_to);
+        }
+
+        if ($this->account_filter) {
+            $entries->where("account_id", $this->account_filter);
+        }
+
+        $transactions = $entries->orderBy("transaction_date", "desc")->orderBy("created_at", "desc")->paginate(15);
+
+        return $transactions;
     }
 
     public function with()
     {
-        $query = PettyCash::with(['account', 'organization'])
-            ->where('organization_id', $this->selectedOrganizationId);
-
-        // Apply filters
-        if ($this->search) {
-            $query->where(function($q) {
-                $q->where('reference', 'like', '%' . $this->search . '%')
-                  ->orWhere('description', 'like', '%' . $this->search . '%')
-                  ->orWhereHas('account', function($subq) {
-                      $subq->where('name', 'like', '%' . $this->search . '%');
-                  });
-            });
-        }
-
-        if ($this->status_filter) {
-            $query->where('status', $this->status_filter);
-        }
-
-        if ($this->date_from) {
-            $query->whereDate('transaction_date', '>=', $this->date_from);
-        }
-
-        if ($this->date_to) {
-            $query->whereDate('transaction_date', '<=', $this->date_to);
-        }
-
-        if ($this->account_filter) {
-            $query->where('account_id', $this->account_filter);
-        }
-
-        $transactions = $query->orderBy('transaction_date', 'desc')
-                             ->orderBy('created_at', 'desc')
-                             ->paginate(15);
-
-        // Get accounts for dropdowns
-        $accounts = Account::where('organization_id', $this->selectedOrganizationId)
-                          ->where('is_active', true)
-                          ->where('type', 'expense')
-                          ->orderBy('account_number')
-                          ->get();
+        $entries = $this->getPettyCashEntries();
+        $transactions = $this->filters($entries);
 
         return [
-            'transactions' => $transactions,
-            'accounts' => $accounts,
+            "transactions" => $transactions,
+            "accounts" => $this->getExpenseAccounts(),
         ];
     }
-}; ?>
+};
+?>
 
 <div class="py-12">
     <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">

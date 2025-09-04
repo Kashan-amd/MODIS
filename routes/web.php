@@ -3,15 +3,11 @@
 use Illuminate\Support\Facades\Route;
 use Livewire\Volt\Volt;
 
-Route::get('/', function ()
-{
+Route::get('/', function () {
     return view('welcome');
 })->name('home');
 
-
-Route::middleware(['auth'])->group(function ()
-{
-
+Route::middleware(['auth'])->group(function () {
     // VOLT dashboard
     Volt::route('dashboard', 'dashboard')->name('dashboard');
 
@@ -27,7 +23,7 @@ Route::middleware(['auth'])->group(function ()
 
     // Accounting routes
     Volt::route('accounts/chart-of-accounts', 'accounting.chart-of-accounts')->name('accounts.chart-of-accounts');
-    Volt::route('accounts/journal-entries', 'accounting.journal-entries')->name('accounts.journal-entries');
+    Volt::route('accounts/transaction-entries', 'accounting.transaction-entries')->name('accounts.transaction-entries');
     Volt::route('accounts/financial-reports', 'accounting.financial-reports')->name('accounts.financial-reports');
     Volt::route('accounts/petty-cash', 'accounting.petty-cash')->name('accounts.petty-cash');
 
@@ -43,8 +39,7 @@ Route::middleware(['auth'])->group(function ()
     Volt::route('sales/costing', 'sales.costing')->name('sales.costing');
 
     // Print routes
-    Route::get('print/client-invoice/{jobId}', function ($jobId)
-    {
+    Route::get('print/client-invoice/{jobId}', function ($jobId) {
         $job = \App\Models\JobBooking::with([
             'client',
             'organization',

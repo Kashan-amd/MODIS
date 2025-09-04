@@ -10,16 +10,16 @@ new class extends Component {
     public $selectedOrganizationId = null;
     public $organizations = [];
     public $stats = [
-        'upcomingEvents' => 0,
-        'totalRevenue' => 0,
-        'totalExpenses' => 0,
-        'venues' => 0,
+        "upcomingEvents" => 0,
+        "totalRevenue" => 0,
+        "totalExpenses" => 0,
+        "venues" => 0,
     ];
     public $upcomingEvents = [];
     public $currentDate;
     public $loanData = [
-        'loanToGive' => 0,
-        'companiesOwing' => []
+        "loanToGive" => 0,
+        "companiesOwing" => [],
     ];
 
     public function mount()
@@ -33,7 +33,7 @@ new class extends Component {
         }
 
         // Set current date
-        $this->currentDate = Carbon::now()->format('F j, Y');
+        $this->currentDate = Carbon::now()->format("F j, Y");
 
         // Load initial stats
         $this->loadOrganizationStats();
@@ -58,31 +58,35 @@ new class extends Component {
         }
 
         // Get upcoming events (jobs) for this organization
-        $upcomingJobs = JobBooking::where('organization_id', $this->selectedOrganizationId)->where('status', 'open')->orderBy('created_at', 'desc')->take(4)->get();
+        $upcomingJobs = JobBooking::where("organization_id", $this->selectedOrganizationId)
+            ->where("status", "open")
+            ->orderBy("created_at", "desc")
+            ->take(4)
+            ->get();
 
-        $this->upcomingEvents = $upcomingJobs->map(function ($job) {
-            return [
-                'title' => $job->campaign,
-                'date' => Carbon::parse($job->created_at)->addDays(rand(3, 30))->format('M d, Y'),
-                'venue' => ['Convention Center', 'Grand Hotel', 'Town Square', 'Exhibition Hall'][rand(0, 3)],
-                'attendees' => rand(100, 500),
-                'status' => rand(0, 1) ? 'green' : 'yellow', // For the status indicator
-            ];
-        });
+        $this->upcomingEvents = $upcomingJobs->map(
+            fn($job) => [
+                "title" => $job->campaign,
+                "date" => Carbon::parse($job->created_at)->addDays(rand(3, 30))->format("M d, Y"),
+                "venue" => ["Convention Center", "Grand Hotel", "Town Square", "Exhibition Hall"][rand(0, 3)],
+                "attendees" => rand(100, 500),
+                "status" => rand(0, 1) ? "green" : "yellow", // For the status indicator
+            ],
+        );
 
         // Calculate stats
         $this->stats = [
-            'upcomingEvents' => JobBooking::where('organization_id', $this->selectedOrganizationId)->where('status', 'open')->count(),
+            "upcomingEvents" => JobBooking::where("organization_id", $this->selectedOrganizationId)->where("status", "open")->count(),
 
-            'totalRevenue' => Transaction::where('to_organization_id', $this->selectedOrganizationId)
-                ->whereIn('transaction_type', ['invoice', 'payment', 'fund', 'revenue'])
-                ->sum('amount'),
+            "totalRevenue" => Transaction::where("to_organization_id", $this->selectedOrganizationId)
+                ->whereIn("transaction_type", ["invoice", "payment", "fund", "revenue"])
+                ->sum("amount"),
 
-            'totalExpenses' => Transaction::where('from_organization_id', $this->selectedOrganizationId)
-                ->whereIn('transaction_type', ['expense'])
-                ->sum('amount'),
+            "totalExpenses" => Transaction::where("from_organization_id", $this->selectedOrganizationId)
+                ->whereIn("transaction_type", ["expense"])
+                ->sum("amount"),
 
-            'venues' => rand(5, 10), // Placeholder for demo purposes
+            "venues" => rand(5, 10), // Placeholder for demo purposes
         ];
 
         // Load loan data (dummy data for demonstration)
@@ -93,8 +97,8 @@ new class extends Component {
     {
         if (!$this->selectedOrganizationId) {
             $this->loanData = [
-                'loanToGive' => 0,
-                'companiesOwing' => []
+                "loanToGive" => 0,
+                "companiesOwing" => [],
             ];
             return;
         }
@@ -107,23 +111,24 @@ new class extends Component {
 
         // Dummy loan data - in real implementation, this would come from a loans table
         $this->loanData = [
-            'loanToGive' => rand(500000, 2000000), // Random amount between 500k - 2M
-            'companiesOwing' => $this->organizations
-                ->where('id', '!=', $this->selectedOrganizationId)
+            "loanToGive" => rand(500000, 2000000), // Random amount between 500k - 2M
+            "companiesOwing" => $this->organizations
+                ->where("id", "!=", $this->selectedOrganizationId)
                 ->take(4)
-                ->map(function ($org) {
-                    return [
-                        'name' => $org->name,
-                        'amount' => rand(50000, 500000),
-                        'status' => ['pending', 'overdue', 'upcoming'][rand(0, 2)],
-                    ];
-                })->toArray()
+                ->map(
+                    fn($org) => [
+                        "name" => $org->name,
+                        "amount" => rand(50000, 500000),
+                        "status" => ["pending", "overdue", "upcoming"][rand(0, 2)],
+                    ],
+                )
+                ->toArray(),
         ];
     }
-}; ?>
+};
+?>
 
 <div>
-    <!-- Header with welcome message and date -->
     <div
         class="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-xl bg-white p-6 shadow-md dark:bg-zinc-800">
         <div>

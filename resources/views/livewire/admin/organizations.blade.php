@@ -3,22 +3,21 @@
 use Livewire\Volt\Component;
 use App\Models\Organization;
 use Livewire\WithPagination;
-use Illuminate\Support\Collection;
 
 new class extends Component {
     use WithPagination;
 
-    public $name = '';
-    public $description = '';
+    public $name = "";
+    public $description = "";
     public $editingOrganizationId = null;
     public $isEditing = false;
-    public $searchQuery = '';
+    public $searchQuery = "";
 
     public function rules()
     {
         return [
-            'name' => 'required|min:2|max:255',
-            'description' => 'nullable|max:255',
+            "name" => "required|min:2|max:255",
+            "description" => "nullable|max:255",
         ];
     }
 
@@ -29,22 +28,22 @@ new class extends Component {
         if ($this->isEditing) {
             $organization = Organization::find($this->editingOrganizationId);
             $organization->update([
-                'name' => $this->name,
-                'description' => $this->description,
+                "name" => $this->name,
+                "description" => $this->description,
             ]);
 
-            $this->dispatch('organization-updated', 'Organization updated successfully');
+            $this->dispatch("organization-updated", "Organization updated successfully");
         } else {
             Organization::create([
-                'name' => $this->name,
-                'description' => $this->description,
+                "name" => $this->name,
+                "description" => $this->description,
             ]);
 
-            $this->dispatch('organization-created', 'Organization created successfully');
+            $this->dispatch("organization-created", "Organization created successfully");
         }
 
         $this->resetForm();
-        $this->modal('organization-form')->close();
+        $this->modal("organization-form")->close();
     }
 
     public function editOrganization($organizationId)
@@ -54,26 +53,26 @@ new class extends Component {
 
         $organization = Organization::find($organizationId);
         $this->name = $organization->name;
-        $this->description = $organization->description ?? '';
-        $this->modal('organization-form')->show();
+        $this->description = $organization->description ?? "";
+        $this->modal("organization-form")->show();
     }
 
     public function deleteOrganization($organizationId)
     {
         Organization::destroy($organizationId);
-        $this->dispatch('organization-deleted', 'Organization deleted successfully');
+        $this->dispatch("organization-deleted", "Organization deleted successfully");
     }
 
     public function resetForm()
     {
-        $this->reset(['name', 'description', 'editingOrganizationId', 'isEditing']);
+        $this->reset(["name", "description", "editingOrganizationId", "isEditing"]);
         $this->resetValidation();
     }
 
     public function cancelEdit()
     {
         $this->resetForm();
-        $this->modal('organization-form')->close();
+        $this->modal("organization-form")->close();
     }
 
     public function with(): array
@@ -81,18 +80,17 @@ new class extends Component {
         $query = Organization::query()
             ->when($this->searchQuery, function ($query, $search) {
                 $query->where(function ($subquery) use ($search) {
-                    $subquery
-                        ->where('name', 'like', "%{$search}%")
-                        ->orWhere('description', 'like', "%{$search}%");
+                    $subquery->where("name", "like", "%{$search}%")->orWhere("description", "like", "%{$search}%");
                 });
             })
-            ->orderBy('created_at', 'desc');
+            ->orderBy("created_at", "desc");
 
         return [
-            'organizations' => $query->paginate(10),
+            "organizations" => $query->paginate(10),
         ];
     }
-}; ?>
+};
+?>
 
 <div class="py-12">
     <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">

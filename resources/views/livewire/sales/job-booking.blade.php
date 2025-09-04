@@ -15,15 +15,15 @@ new class extends Component {
     use WithPagination;
 
     // Job Booking fields
-    public $job_number = '';
-    public $campaign = '';
-    public $client_id = '';
-    public $organization_id = '';
-    public $sale_by = '';
-    public $po_number = '';
+    public $job_number = "";
+    public $campaign = "";
+    public $client_id = "";
+    public $organization_id = "";
+    public $sale_by = "";
+    public $po_number = "";
     public $approved_budget = null;
     public $gst = false;
-    public $status = 'open';
+    public $status = "open";
 
     // Job Costing items
     public $items = [];
@@ -34,12 +34,32 @@ new class extends Component {
     // Edit mode
     public $editingJobId = null;
     public $isEditing = false;
-    public $searchQuery = '';
+    public $searchQuery = "";
 
     // View details mode
     public $viewingJobId = null;
     public $isViewingDetails = false;
     public $viewingJob = null;
+
+    protected function rules()
+    {
+        return [
+            "campaign" => "required|string|max:255",
+            "client_id" => "required|exists:clients,id",
+            "organization_id" => "required|exists:organizations,id",
+            "sale_by" => "required|string|max:255",
+            "po_number" => "required|string|max:255",
+            "approved_budget" => "nullable|numeric|min:0",
+            "gst" => "boolean",
+            "items" => "required|array|min:1",
+            "items.*.vendor_id" => "required|exists:vendors,id",
+            "items.*.sub_account_id" => "required|exists:chart_of_accounts,id",
+            "items.*.sub_item_id" => "required|exists:items,id",
+            "items.*.quantity" => "required|integer|min:1",
+            "items.*.rate" => "required|numeric|min:0",
+            "items.*.total_amount" => "required|numeric|min:0",
+        ];
+    }
 
     public function mount()
     {
@@ -56,16 +76,14 @@ new class extends Component {
         }
 
         // Get Cost of Goods Sold main account
-        $cogsAccount = Account::where('name', 'Cost of Goods Sold')
-            ->orWhere('account_number', '80')
-            ->first();
+        $cogsAccount = Account::where("name", "Cost of Goods Sold")->orWhere("account_number", "80")->first();
 
         if ($cogsAccount) {
             // Get all sub-accounts under Cost of Goods Sold for the selected organization
-            $this->subAccounts = Account::where('parent_id', $cogsAccount->id)
-                ->where('is_active', true)
+            $this->subAccounts = Account::where("parent_id", $cogsAccount->id)
+                ->where("is_active", true)
                 ->organizationAccounts($this->organization_id)
-                ->orderBy('name')
+                ->orderBy("name")
                 ->get();
         }
     }
@@ -73,53 +91,31 @@ new class extends Component {
     public function getSubItemsForAccount($accountId)
     {
         // Debug: Log the account ID being queried
-        \Log::info('Getting sub-items for account ID: ' . $accountId);
+        \Log::info("Getting sub-items for account ID: " . $accountId);
 
         if (empty($accountId)) {
             return collect();
         }
 
         // Get items that belong to this COGS account
-        $subItems = Item::where('cogs_account_id', $accountId)
-            ->orderBy('name')
-            ->get();
+        $subItems = Item::where("cogs_account_id", $accountId)->orderBy("name")->get();
 
         // Debug: Log the results
-        \Log::info('Found sub-items: ' . $subItems->count());
-        \Log::info('Sub-items: ' . $subItems->pluck('name', 'id')->toJson());
+        \Log::info("Found sub-items: " . $subItems->count());
+        \Log::info("Sub-items: " . $subItems->pluck("name", "id")->toJson());
 
         return $subItems;
-    }
-
-    protected function rules()
-    {
-        return [
-            'campaign' => 'required|string|max:255',
-            'client_id' => 'required|exists:clients,id',
-            'organization_id' => 'required|exists:organizations,id',
-            'sale_by' => 'required|string|max:255',
-            'po_number' => 'required|string|max:255',
-            'approved_budget' => 'nullable|numeric|min:0',
-            'gst' => 'boolean',
-            'items' => 'required|array|min:1',
-            'items.*.vendor_id' => 'required|exists:vendors,id',
-            'items.*.sub_account_id' => 'required|exists:chart_of_accounts,id',
-            'items.*.sub_item_id' => 'required|exists:items,id',
-            'items.*.quantity' => 'required|integer|min:1',
-            'items.*.rate' => 'required|numeric|min:0',
-            'items.*.total_amount' => 'required|numeric|min:0',
-        ];
     }
 
     public function addItem()
     {
         $this->items[] = [
-            'vendor_id' => '',
-            'sub_account_id' => '',
-            'sub_item_id' => '',
-            'quantity' => 1,
-            'rate' => 0,
-            'total_amount' => 0,
+            "vendor_id" => "",
+            "sub_account_id" => "",
+            "sub_item_id" => "",
+            "quantity" => 1,
+            "rate" => 0,
+            "total_amount" => 0,
         ];
     }
 
@@ -136,30 +132,30 @@ new class extends Component {
 
         // Clear existing items' sub account and sub item selections
         foreach ($this->items as $index => $item) {
-            $this->items[$index]['sub_account_id'] = '';
-            $this->items[$index]['sub_item_id'] = '';
+            $this->items[$index]["sub_account_id"] = "";
+            $this->items[$index]["sub_item_id"] = "";
         }
     }
 
     public function updatedItems($value, $key)
     {
         // Extract the index and field from the key (e.g., "0.sub_account_id")
-        $keyParts = explode('.', $key);
+        $keyParts = explode(".", $key);
         $index = $keyParts[0];
         $field = $keyParts[1] ?? null;
 
-        if ($field === 'sub_account_id' && $value) {
+        if ($field === "sub_account_id" && $value) {
             // Clear sub_item_id when sub_account changes
-            $this->items[$index]['sub_item_id'] = '';
+            $this->items[$index]["sub_item_id"] = "";
         }
     }
 
     public function calculateTotal($index)
     {
-        if (isset($this->items[$index]['quantity']) && isset($this->items[$index]['rate'])) {
-            $quantity = (int) $this->items[$index]['quantity'];
-            $rate = (float) $this->items[$index]['rate'];
-            $this->items[$index]['total_amount'] = $quantity * $rate;
+        if (isset($this->items[$index]["quantity"]) && isset($this->items[$index]["rate"])) {
+            $quantity = (int) $this->items[$index]["quantity"];
+            $rate = (float) $this->items[$index]["rate"];
+            $this->items[$index]["total_amount"] = $quantity * $rate;
         }
     }
 
@@ -170,13 +166,13 @@ new class extends Component {
         if ($this->isEditing) {
             $jobBooking = JobBooking::find($this->editingJobId);
             $jobBooking->update([
-                'campaign' => $this->campaign,
-                'client_id' => $this->client_id,
-                'organization_id' => $this->organization_id,
-                'sale_by' => $this->sale_by,
-                'po_number' => $this->po_number,
-                'approved_budget' => $this->approved_budget,
-                'gst' => $this->gst,
+                "campaign" => $this->campaign,
+                "client_id" => $this->client_id,
+                "organization_id" => $this->organization_id,
+                "sale_by" => $this->sale_by,
+                "po_number" => $this->po_number,
+                "approved_budget" => $this->approved_budget,
+                "gst" => $this->gst,
             ]);
 
             // Delete existing job costings and recreate
@@ -184,63 +180,63 @@ new class extends Component {
 
             foreach ($this->items as $item) {
                 // Get the sub-item and sub-account details
-                $subItem = Item::find($item['sub_item_id']);
-                $subAccount = Account::find($item['sub_account_id']);
+                $subItem = Item::find($item["sub_item_id"]);
+                $subAccount = Account::find($item["sub_account_id"]);
 
                 JobCosting::create([
-                    'job_id' => $jobBooking->id,
-                    'vendor_id' => $item['vendor_id'],
-                    'sub_account_id' => $item['sub_account_id'],
-                    'sub_item_id' => $item['sub_item_id'],
-                    'sub_account_name' => $subAccount ? $subAccount->name : '',
-                    'sub_item_name' => $subItem ? $subItem->name : '',
-                    'quantity' => $item['quantity'],
-                    'rate' => $item['rate'],
-                    'total_amount' => $item['total_amount'],
+                    "job_id" => $jobBooking->id,
+                    "vendor_id" => $item["vendor_id"],
+                    "sub_account_id" => $item["sub_account_id"],
+                    "sub_item_id" => $item["sub_item_id"],
+                    "sub_account_name" => $subAccount ? $subAccount->name : "",
+                    "sub_item_name" => $subItem ? $subItem->name : "",
+                    "quantity" => $item["quantity"],
+                    "rate" => $item["rate"],
+                    "total_amount" => $item["total_amount"],
                 ]);
             }
 
-            $this->dispatch('job-updated', 'Job booking updated successfully');
+            $this->dispatch("job-updated", "Job booking updated successfully");
         } else {
             // Create a new job booking
             $jobModel = new JobBooking();
             $job_number = $jobModel->generateJobNumber($this->organization_id);
 
             $jobBooking = JobBooking::create([
-                'job_number' => $job_number,
-                'campaign' => $this->campaign,
-                'client_id' => $this->client_id,
-                'organization_id' => $this->organization_id,
-                'sale_by' => $this->sale_by,
-                'po_number' => $this->po_number,
-                'approved_budget' => $this->approved_budget,
-                'gst' => $this->gst,
-                'status' => 'open',
+                "job_number" => $job_number,
+                "campaign" => $this->campaign,
+                "client_id" => $this->client_id,
+                "organization_id" => $this->organization_id,
+                "sale_by" => $this->sale_by,
+                "po_number" => $this->po_number,
+                "approved_budget" => $this->approved_budget,
+                "gst" => $this->gst,
+                "status" => "open",
             ]);
 
             foreach ($this->items as $item) {
                 // Get the sub-item and sub-account details
-                $subItem = Item::find($item['sub_item_id']);
-                $subAccount = Account::find($item['sub_account_id']);
+                $subItem = Item::find($item["sub_item_id"]);
+                $subAccount = Account::find($item["sub_account_id"]);
 
                 JobCosting::create([
-                    'job_id' => $jobBooking->id,
-                    'vendor_id' => $item['vendor_id'],
-                    'sub_account_id' => $item['sub_account_id'],
-                    'sub_item_id' => $item['sub_item_id'],
-                    'sub_account_name' => $subAccount ? $subAccount->name : '',
-                    'sub_item_name' => $subItem ? $subItem->name : '',
-                    'quantity' => $item['quantity'],
-                    'rate' => $item['rate'],
-                    'total_amount' => $item['total_amount'],
+                    "job_id" => $jobBooking->id,
+                    "vendor_id" => $item["vendor_id"],
+                    "sub_account_id" => $item["sub_account_id"],
+                    "sub_item_id" => $item["sub_item_id"],
+                    "sub_account_name" => $subAccount ? $subAccount->name : "",
+                    "sub_item_name" => $subItem ? $subItem->name : "",
+                    "quantity" => $item["quantity"],
+                    "rate" => $item["rate"],
+                    "total_amount" => $item["total_amount"],
                 ]);
             }
 
-            $this->dispatch('job-created', 'Job booking created successfully');
+            $this->dispatch("job-created", "Job booking created successfully");
         }
 
         $this->resetForm();
-        $this->modal('job-form')->close();
+        $this->modal("job-form")->close();
     }
 
     public function editJobBooking($jobId)
@@ -248,7 +244,7 @@ new class extends Component {
         $this->isEditing = true;
         $this->editingJobId = $jobId;
 
-        $jobBooking = JobBooking::with('jobCostings')->find($jobId);
+        $jobBooking = JobBooking::with("jobCostings")->find($jobId);
         $this->job_number = $jobBooking->job_number;
         $this->campaign = $jobBooking->campaign;
         $this->client_id = $jobBooking->client_id;
@@ -266,16 +262,16 @@ new class extends Component {
         $this->items = [];
         foreach ($jobBooking->jobCostings as $costing) {
             $this->items[] = [
-                'vendor_id' => $costing->vendor_id,
-                'sub_account_id' => $costing->sub_account_id ?? '',
-                'sub_item_id' => $costing->sub_item_id ?? '',
-                'quantity' => $costing->quantity,
-                'rate' => $costing->rate,
-                'total_amount' => $costing->total_amount,
+                "vendor_id" => $costing->vendor_id,
+                "sub_account_id" => $costing->sub_account_id ?? "",
+                "sub_item_id" => $costing->sub_item_id ?? "",
+                "quantity" => $costing->quantity,
+                "rate" => $costing->rate,
+                "total_amount" => $costing->total_amount,
             ];
         }
 
-        $this->modal('job-form')->show();
+        $this->modal("job-form")->show();
     }
 
     public function viewJobDetails($jobId)
@@ -284,15 +280,11 @@ new class extends Component {
         $this->viewingJobId = $jobId;
 
         // Load the job with all related data
-        $this->viewingJob = JobBooking::with([
-            'client',
-            'organization',
-            'jobCostings.vendor',
-            'jobCostings.subAccount',
-            'jobCostings.subItem'
-        ])->find($jobId);
+        $this->viewingJob = JobBooking::with(["client", "organization", "jobCostings.vendor", "jobCostings.subAccount", "jobCostings.subItem"])->find(
+            $jobId,
+        );
 
-        $this->modal('job-details')->show();
+        $this->modal("job-details")->show();
     }
 
     public function closeJobDetails()
@@ -300,32 +292,44 @@ new class extends Component {
         $this->isViewingDetails = false;
         $this->viewingJobId = null;
         $this->viewingJob = null;
-        $this->modal('job-details')->close();
+        $this->modal("job-details")->close();
     }
 
     public function closeJob($jobId)
     {
         $jobBooking = JobBooking::find($jobId);
-        $jobBooking->update(['status' => 'closed']);
-        $this->dispatch('job-closed', 'Job booking closed successfully');
+        $jobBooking->update(["status" => "closed"]);
+        $this->dispatch("job-closed", "Job booking closed successfully");
     }
 
     public function reopenJob($jobId)
     {
         $jobBooking = JobBooking::find($jobId);
-        $jobBooking->update(['status' => 'open']);
-        $this->dispatch('job-reopened', 'Job booking reopened successfully');
+        $jobBooking->update(["status" => "open"]);
+        $this->dispatch("job-reopened", "Job booking reopened successfully");
     }
 
     public function deleteJobBooking($jobId)
     {
         JobBooking::destroy($jobId);
-        $this->dispatch('job-deleted', 'Job booking deleted successfully');
+        $this->dispatch("job-deleted", "Job booking deleted successfully");
     }
 
     public function resetForm()
     {
-        $this->reset(['job_number', 'campaign', 'client_id', 'organization_id', 'sale_by', 'po_number', 'approved_budget', 'gst', 'status', 'editingJobId', 'isEditing']);
+        $this->reset([
+            "job_number",
+            "campaign",
+            "client_id",
+            "organization_id",
+            "sale_by",
+            "po_number",
+            "approved_budget",
+            "gst",
+            "status",
+            "editingJobId",
+            "isEditing",
+        ]);
         $this->resetItemsForm();
         $this->resetValidation();
 
@@ -337,12 +341,12 @@ new class extends Component {
     {
         $this->items = [
             [
-                'vendor_id' => '',
-                'sub_account_id' => '',
-                'sub_item_id' => '',
-                'quantity' => 1,
-                'rate' => 0,
-                'total_amount' => 0,
+                "vendor_id" => "",
+                "sub_account_id" => "",
+                "sub_item_id" => "",
+                "quantity" => 1,
+                "rate" => 0,
+                "total_amount" => 0,
             ],
         ];
     }
@@ -350,38 +354,44 @@ new class extends Component {
     public function cancelEdit()
     {
         $this->resetForm();
-        $this->modal('job-form')->close();
+        $this->modal("job-form")->close();
+    }
+
+    public function getJobBookings()
+    {
+        $query = JobBooking::with(["client", "organization", "jobCostings"])
+            ->when($this->searchQuery, function ($query, $search) {
+                $query->where(function ($subquery) use ($search) {
+                    $subquery
+                        ->where("job_number", "like", "%{$search}%")
+                        ->orWhere("campaign", "like", "%{$search}%")
+                        ->orWhere("sale_by", "like", "%{$search}%")
+                        ->orWhere("po_number", "like", "%{$search}%")
+                        ->orWhereHas("client", function ($q) use ($search) {
+                            $q->where("name", "like", "%{$search}%");
+                        })
+                        ->orWhereHas("organization", function ($q) use ($search) {
+                            $q->where("name", "like", "%{$search}%");
+                        });
+                });
+            })
+            ->orderBy("created_at", "desc");
+
+        return $query;
     }
 
     public function with(): array
     {
-        $query = JobBooking::with(['client', 'organization', 'jobCostings'])
-            ->when($this->searchQuery, function ($query, $search) {
-                $query->where(function ($subquery) use ($search) {
-                    $subquery
-                        ->where('job_number', 'like', "%{$search}%")
-                        ->orWhere('campaign', 'like', "%{$search}%")
-                        ->orWhere('sale_by', 'like', "%{$search}%")
-                        ->orWhere('po_number', 'like', "%{$search}%")
-                        ->orWhereHas('client', function ($q) use ($search) {
-                            $q->where('name', 'like', "%{$search}%");
-                        })
-                        ->orWhereHas('organization', function ($q) use ($search) {
-                            $q->where('name', 'like', "%{$search}%");
-                        });
-                });
-            })
-            ->orderBy('created_at', 'desc');
-
+        $results = $this->getJobBookings();
         // Find the Cost of Goods Sold head account (account number starting with 80)
         $costOfGoodsSoldItems = $this->getCostOfGoodsSoldItems();
 
         return [
-            'jobBookings' => $query->paginate(10),
-            'clients' => Client::orderBy('name')->get(),
-            'vendors' => Vendor::orderBy('name')->get(),
-            'itemsList' => $costOfGoodsSoldItems,
-            'organizations' => Organization::orderBy('name')->get(),
+            "jobBookings" => $results->paginate(10),
+            "clients" => Client::orderBy("name")->get(),
+            "vendors" => Vendor::orderBy("name")->get(),
+            "itemsList" => $costOfGoodsSoldItems,
+            "organizations" => Organization::orderBy("name")->get(),
         ];
     }
 
@@ -393,34 +403,28 @@ new class extends Component {
     private function getCostOfGoodsSoldItems(): Collection
     {
         // First, find the main Cost of Goods Sold account (number 80)
-        $cogsAccount = Account::where('account_number', 'like', '80%')
-            ->where('is_parent', true)
-            ->first();
+        $cogsAccount = Account::where("account_number", "like", "80%")->where("is_parent", true)->first();
 
         if (!$cogsAccount) {
             // Fallback to regular items if COGS account not found
-            return Item::orderBy('name')->get();
+            return Item::orderBy("name")->get();
         }
 
         // Get all child accounts under Cost of Goods Sold
-        $cogsItems = Account::where('parent_id', $cogsAccount->id)
-            ->where('is_active', true)
-            ->orderBy('name')
-            ->get()
-            ->map(function ($account) {
-                // Transform account to match the Item interface expected by the form
-                return (object)[
-                    'id' => $account->id,
-                    'name' => $account->name . ' (' . $account->account_number . ')',
-                    'description' => $account->description,
-                    'is_account' => true,
-                    'account_number' => $account->account_number
-                ];
-            });
+        $cogsItems = Account::where("parent_id", $cogsAccount->id)->where("is_active", true)->orderBy("name")->get()->map(
+            // Transform account to match the Item interface expected by the form
+            fn($account) => (object) [
+                "id" => $account->id,
+                "name" => $account->name . " (" . (string) $account->account_number . ")",
+                "description" => $account->description,
+                "is_account" => true,
+                "account_number" => $account->account_number,
+            ],
+        );
 
         // If no child accounts found, fallback to regular items
         if ($cogsItems->isEmpty()) {
-            return Item::orderBy('name')->get();
+            return Item::orderBy("name")->get();
         }
 
         return $cogsItems;
@@ -430,18 +434,17 @@ new class extends Component {
     {
         $total = 0;
         foreach ($this->items as $item) {
-            $total += (float) ($item['total_amount'] ?? 0);
+            $total += (float) ($item["total_amount"] ?? 0);
         }
         return $total;
     }
 
     public function fetchAccounts()
     {
-        return Account::where('account_number', '80')
-            ->orWhere('parent_id', 80)
-            ->get();
+        return Account::where("account_number", "80")->orWhere("parent_id", 80)->get();
     }
-}; ?>
+};
+?>
 
 <div class="py-12">
     <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
@@ -544,7 +547,7 @@ new class extends Component {
                                 </div>
 
                                 <div>
-                                    <label for="po_number" class="block text-sm font-medium">PO Number</label>
+                                    <label for="po_number" class="block text-sm font-medium">Reference Number</label>
                                     <flux:input id="po_number" type="text" wire:model="po_number"
                                         class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                                         placeholder="Enter purchase order number">

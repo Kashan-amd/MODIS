@@ -12,31 +12,21 @@ class PettyCash extends Model
 {
     use HasFactory;
 
-    protected $table = 'petty_cash';
+    protected $table = "petty_cash";
 
-    protected $fillable = [
-        'organization_id',
-        'account_id',
-        'balance',
-        'debit',
-        'credit',
-        'reference',
-        'description',
-        'status',
-        'transaction_date',
-    ];
+    protected $fillable = ["organization_id", "account_id", "balance", "debit", "credit", "reference", "description", "status", "transaction_date"];
 
     protected $casts = [
-        'balance' => 'decimal:2',
-        'debit' => 'decimal:2',
-        'credit' => 'decimal:2',
-        'transaction_date' => 'date',
+        "balance" => "decimal:2",
+        "debit" => "decimal:2",
+        "credit" => "decimal:2",
+        "transaction_date" => "date",
     ];
 
     // Status constants
-    const STATUS_DRAFT = 'draft';
-    const STATUS_POSTED = 'posted';
-    const STATUS_VOID = 'void';
+    const STATUS_DRAFT = "draft";
+    const STATUS_POSTED = "posted";
+    const STATUS_VOID = "void";
 
     // Relationships
     public function organization(): BelongsTo
@@ -62,33 +52,32 @@ class PettyCash extends Model
 
     public function getFormattedDebitAttribute(): string
     {
-        return $this->debit > 0 ? $this->formatMoney($this->debit) : '';
+        return $this->debit > 0 ? $this->formatMoney($this->debit) : "";
     }
 
     public function getFormattedCreditAttribute(): string
     {
-        return $this->credit > 0 ? $this->formatMoney($this->credit) : '';
+        return $this->credit > 0 ? $this->formatMoney($this->credit) : "";
     }
 
     public function post()
     {
-        $this->update(['status' => self::STATUS_POSTED]);
+        $this->update(["status" => self::STATUS_POSTED]);
 
         // Update account balance
-        $this->account->increment('current_balance', $this->debit - $this->credit);
+        $this->account->increment("current_balance", $this->debit - $this->credit);
 
         return $this;
     }
 
     public function void()
     {
-        if ($this->status === self::STATUS_POSTED)
-        {
+        if ($this->status === self::STATUS_POSTED) {
             // Reverse the account balance update
-            $this->account->decrement('current_balance', $this->debit - $this->credit);
+            $this->account->decrement("current_balance", $this->debit - $this->credit);
         }
 
-        $this->update(['status' => self::STATUS_VOID]);
+        $this->update(["status" => self::STATUS_VOID]);
 
         return $this;
     }

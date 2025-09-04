@@ -26,36 +26,40 @@
             <flux:navlist.group expandable :heading="__('Admin')" class="hidden lg:grid" :expanded="true">
                 <flux:navlist.item icon="building-office" :href="route('admin.organizations')">Organizations
                 </flux:navlist.item>
+                <flux:navlist.item icon="building-library">Banks
+                </flux:navlist.item>
+                <flux:navlist.item icon="user-group">Employees
+                </flux:navlist.item>
                 <flux:navlist.item icon="users" :href="route('admin.clients')">Clients</flux:navlist.item>
                 <flux:navlist.item icon="building-storefront" :href="route('admin.vendors')">Vendors
                 </flux:navlist.item>
                 <flux:navlist.item icon="cube" :href="route('admin.items')">Items
                 </flux:navlist.item>
-                <flux:navlist.item icon="banknotes" :href="route('admin.opening-balances')">Opening Balances
-                </flux:navlist.item>
+                {{-- <flux:navlist.item icon="banknotes" :href="route('admin.opening-balances')">Opening Balances
+                </flux:navlist.item> --}}
                 {{-- <flux:navlist.item icon="circle-stack" href="#">Banks</flux:navlist.item> --}}
             </flux:navlist.group>
 
-            <flux:navlist.group expandable :heading="__('Jobs')" class="hidden lg:grid" :expanded="true">
+            <flux:navlist.group expandable :heading="__('Sales')" class="hidden lg:grid" :expanded="true">
                 <flux:navlist.item icon="clipboard-document-list" :href="route('sales.job-booking')">Job Booking
                 </flux:navlist.item>
                 <flux:navlist.item icon="calculator" :href="route('sales.costing')">Costing</flux:navlist.item>
             </flux:navlist.group>
 
             <flux:navlist.group expandable :heading="__('Accounts')" class="hidden lg:grid" :expanded="true">
-                <flux:navlist.item icon="building-storefront" href="#">Vendor Ledger</flux:navlist.item>
                 <flux:navlist.item icon="users" href="#">Client Ledger</flux:navlist.item>
+                <flux:navlist.item icon="building-storefront" href="#">Vendor Ledger</flux:navlist.item>
             </flux:navlist.group>
 
             <flux:navlist.group expandable :heading="__('Finance')" class="hidden lg:grid" :expanded="true">
-                <flux:navlist.item icon="credit-card" :href="route('accounts.transactions')" wire:navigate>
-                    {{ __('Transactions') }}
-                </flux:navlist.item>
+                {{-- <flux:navlist.item icon="credit-card" :href="route('accounts.transactions')" wire:navigate>
+                    {{ __('Transactions History') }}
+                </flux:navlist.item> --}}
                 <flux:navlist.item icon="chart-bar-square" :href="route('accounts.chart-of-accounts')" wire:navigate>
                     {{ __('Chart of Accounts') }}
                 </flux:navlist.item>
-                <flux:navlist.item icon="book-open" :href="route('accounts.journal-entries')" wire:navigate>
-                    {{ __('Journal Entries') }}
+                <flux:navlist.item icon="book-open" :href="route('accounts.transaction-entries')" wire:navigate>
+                    {{ __('Transactions') }}
                 </flux:navlist.item>
                 <flux:navlist.item icon="banknotes" :href="route('accounts.petty-cash')" wire:navigate>
                     {{ __('Petty Cash') }}

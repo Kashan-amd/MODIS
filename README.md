@@ -1,10 +1,10 @@
-# OSC Corporation - Resource Planning
+# MODIS - Multi Org. Data Integration System
 
 A comprehensive platform designed to help businesses manage their organizations, track financial transactions, and maintain relationships with vendors and clients.
 
 ## About the Project
 
-OSC Corporation is built using Laravel and Livewire, creating a powerful and interactive web application. The system is designed to be scalable, efficient, and user-friendly, providing businesses with the tools they need to manage their operations effectively.
+MODIS is built using Laravel and Livewire, creating a powerful and interactive web application. The system is designed to be scalable, efficient, and user-friendly, providing businesses with the tools they need to manage their operations effectively.
 
 ## Key Features
 
@@ -19,9 +19,9 @@ OSC Corporation is built using Laravel and Livewire, creating a powerful and int
 ## Tech Stack
 
 -   **Backend**: PHP Laravel
--   **Frontend**: Livewire, Volt, Flux UI, Tailwind CSS
+-   **Frontend**: Livewire/Volt, Tailwind CSS
+-   **UI**: Flux UI
 -   **Database**: MySQL
--   **Testing**: Pest PHP
 
 <br>
 

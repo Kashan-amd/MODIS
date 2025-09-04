@@ -18,7 +18,7 @@
                 wire:navigate>
                 <span
                     class="font-extrabold text-6xl tracking-tight bg-gradient-to-r from-indigo-600 via-purple-500 to-pink-500 bg-clip-text text-transparent drop-shadow-lg animate-gradient-x">
-                    OS CORPORATION
+                        MODIS
                 </span>
                 <div
                     class="absolute -bottom-2 left-0 w-full h-0.5 bg-gradient-to-r from-indigo-600 to-pink-500 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left">

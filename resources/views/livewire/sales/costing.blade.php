@@ -13,13 +13,14 @@ use Illuminate\Support\Collection;
 new class extends Component {
     use WithPagination;
 
-    public $selectedClientId = '';
-    public $selectedJobBookingId = '';
+    public $selectedClientId = "";
+    public $selectedJobBookingId = "";
     public $clients = [];
     public $jobBookings = [];
     public $costingItems = [];
 
     // For the costing table
+    public $estimatedRates = [];
     public $actualRates = [];
     public $notes = [];
 
@@ -31,48 +32,51 @@ new class extends Component {
 
     public function loadJobBookings()
     {
-        if ($this->selectedClientId) {
-            $this->jobBookings = JobBooking::with(['client', 'organization'])
-                ->where('client_id', $this->selectedClientId)
-                ->get();
-        } else {
-            $this->jobBookings = collect();
-        }
+        $this->selectedClientId
+            ? ($this->jobBookings = JobBooking::with(["client", "organization"])
+                ->where("client_id", $this->selectedClientId)
+                ->get())
+            : ($this->jobBookings = collect());
 
         // Reset job booking selection when client changes
-        $this->selectedJobBookingId = '';
+        $this->selectedJobBookingId = "";
         $this->costingItems = [];
     }
 
     public function loadCostingItems()
     {
         if ($this->selectedJobBookingId) {
-            $jobBooking = JobBooking::with(['jobCostings.vendor', 'jobCostings.subAccount', 'jobCostings.subItem'])->find($this->selectedJobBookingId);
+            $jobBooking = JobBooking::with(["jobCostings.vendor", "jobCostings.subAccount", "jobCostings.subItem"])->find(
+                $this->selectedJobBookingId,
+            );
 
             if ($jobBooking) {
                 $this->costingItems = $jobBooking->jobCostings
                     ->map(function ($costing) {
-                        // Initialize actual rates and notes arrays
+                        // Initialize estimated rates, actual rates and notes arrays
+                        $this->estimatedRates[$costing->id] = $costing->estimated_rate ?? 0;
                         $this->actualRates[$costing->id] = $costing->actual_rate ?? 0;
-                        $this->notes[$costing->id] = $costing->notes ?? '';
+                        $this->notes[$costing->id] = $costing->notes ?? "";
 
+                        $estimatedRate = $costing->estimated_rate ?? 0;
                         $actualRate = $costing->actual_rate ?? 0;
+                        $estimatedAmount = $costing->quantity * $estimatedRate;
                         $actualAmount = $costing->quantity * $actualRate;
-                        $difference = $actualAmount - $costing->total_amount;
-                        $diffPercentage = $costing->total_amount > 0 ? round(($difference / $costing->total_amount) * 100, 2) : 0;
+                        $difference = $actualAmount - $estimatedAmount;
+                        $diffPercentage = $estimatedAmount > 0 ? round(($difference / $estimatedAmount) * 100, 2) : 0;
 
                         return [
-                            'id' => $costing->id,
-                            'sub_item_name' => $costing->sub_item_name ?? 'N/A',
-                            'sub_account_name' => $costing->sub_account_name ?? 'N/A',
-                            'vendor_name' => $costing->vendor->name ?? 'N/A',
-                            'quantity' => $costing->quantity,
-                            'estimated_rate' => $costing->rate,
-                            'estimated_amount' => $costing->total_amount,
-                            'actual_rate' => $actualRate,
-                            'actual_amount' => $actualAmount,
-                            'difference' => $difference,
-                            'difference_percentage' => $diffPercentage,
+                            "id" => $costing->id,
+                            "sub_item_name" => $costing->sub_item_name ?? "N/A",
+                            "sub_account_name" => $costing->sub_account_name ?? "N/A",
+                            "vendor_name" => $costing->vendor->name ?? "N/A",
+                            "quantity" => $costing->quantity,
+                            "estimated_rate" => $estimatedRate,
+                            "estimated_amount" => $estimatedAmount,
+                            "actual_rate" => $actualRate,
+                            "actual_amount" => $actualAmount,
+                            "difference" => $difference,
+                            "difference_percentage" => $diffPercentage,
                         ];
                     })
                     ->toArray();
@@ -90,6 +94,11 @@ new class extends Component {
         $this->loadCostingItems();
     }
 
+    public function updatedEstimatedRates($value, $key)
+    {
+        $this->calculateDifferences();
+    }
+
     public function updatedActualRates($value, $key)
     {
         $this->calculateDifferences();
@@ -98,18 +107,21 @@ new class extends Component {
     public function calculateDifferences()
     {
         foreach ($this->costingItems as $index => $item) {
-            $costingId = $item['id'];
+            $costingId = $item["id"];
+            $estimatedRate = floatval($this->estimatedRates[$costingId] ?? 0);
             $actualRate = floatval($this->actualRates[$costingId] ?? 0);
-            $actualAmount = $item['quantity'] * $actualRate;
-            $estimatedAmount = $item['estimated_amount'];
+            $estimatedAmount = $item["quantity"] * $estimatedRate;
+            $actualAmount = $item["quantity"] * $actualRate;
 
             $difference = $actualAmount - $estimatedAmount;
             $diffPercentage = $estimatedAmount > 0 ? round(($difference / $estimatedAmount) * 100, 2) : 0;
 
-            $this->costingItems[$index]['actual_rate'] = $actualRate;
-            $this->costingItems[$index]['actual_amount'] = $actualAmount;
-            $this->costingItems[$index]['difference'] = $difference;
-            $this->costingItems[$index]['difference_percentage'] = $diffPercentage;
+            $this->costingItems[$index]["estimated_rate"] = $estimatedRate;
+            $this->costingItems[$index]["estimated_amount"] = $estimatedAmount;
+            $this->costingItems[$index]["actual_rate"] = $actualRate;
+            $this->costingItems[$index]["actual_amount"] = $actualAmount;
+            $this->costingItems[$index]["difference"] = $difference;
+            $this->costingItems[$index]["difference_percentage"] = $diffPercentage;
         }
     }
 
@@ -118,31 +130,32 @@ new class extends Component {
         $costing = JobCosting::find($costingId);
         if ($costing) {
             $costing->update([
-                'actual_rate' => $this->actualRates[$costingId] ?? $costing->rate,
-                'notes' => $this->notes[$costingId] ?? null,
+                "estimated_rate" => $this->estimatedRates[$costingId] ?? 0,
+                "actual_rate" => $this->actualRates[$costingId] ?? 0,
+                "notes" => $this->notes[$costingId] ?? null,
             ]);
 
-            session()->flash('message', 'Item updated successfully');
+            session()->flash("message", "Item updated successfully");
         }
     }
 
     public function saveAllChanges()
     {
-        foreach ($this->actualRates as $costingId => $actualRate) {
+        foreach ($this->estimatedRates as $costingId => $estimatedRate) {
             $this->saveItem($costingId);
         }
 
-        session()->flash('message', 'All changes saved successfully');
+        session()->flash("message", "All changes saved successfully");
     }
 
     public function getTotalEstimated()
     {
-        return collect($this->costingItems)->sum('estimated_amount');
+        return collect($this->costingItems)->sum("estimated_amount");
     }
 
     public function getTotalActual()
     {
-        return collect($this->costingItems)->sum('actual_amount');
+        return collect($this->costingItems)->sum("actual_amount");
     }
 
     public function getTotalDifference()
@@ -155,7 +168,8 @@ new class extends Component {
         $estimated = $this->getTotalEstimated();
         return $estimated > 0 ? round(($this->getTotalDifference() / $estimated) * 100, 2) : 0;
     }
-}; ?>
+};
+?>
 
 <div class="py-12">
     <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
@@ -318,10 +332,11 @@ new class extends Component {
                             <td
                                 class="px-8 py-6 text-sm text-center border-l-2 border-r-2 border-blue-400/30 bg-blue-900/10">
                                 <div class="grid grid-cols-2 gap-4 items-center">
-                                    <div class="text-blue-300 font-medium border-r border-blue-400/30 pr-4 text-right">
-                                        <div class="text-xs text-blue-400 mb-1"></div>
-                                        <div class="text-lg font-bold">{{ number_format($item['estimated_rate'],2) }}
-                                        </div>
+                                    <div class="relative border-r border-blue-400/30 pr-4">
+                                        <div class="text-xs text-blue-400 mb-2"></div>
+                                        <flux:input type="number" step="0.01"
+                                            wire:model.live="estimatedRates.{{ $item['id'] }}"
+                                            class="w-full text-center text-blue-300 focus:border-blue-400 focus:ring-blue-400 text-sm font-bold py-2" />
                                     </div>
                                     <div class="text-blue-200 font-semibold pl-0 text-left">
                                         <div class="text-xs text-blue-400 mb-1"></div>

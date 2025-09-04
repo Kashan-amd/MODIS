@@ -4,26 +4,25 @@ use Livewire\Volt\Component;
 use App\Models\Item;
 use App\Models\Account;
 use Livewire\WithPagination;
-use Illuminate\Support\Collection;
 
 new class extends Component {
     use WithPagination;
 
-    public $name = '';
-    public $category = '';
-    public $description = '';
-    public $cogs_account_id = '';
+    public $name = "";
+    public $category = "";
+    public $description = "";
+    public $cogs_account_id = "";
     public $editingItemId = null;
     public $isEditing = false;
-    public $searchQuery = '';
+    public $searchQuery = "";
 
     public function rules()
     {
         return [
-            'name' => 'required|min:2|max:255',
-            'category' => 'nullable|max:255',
-            'description' => 'nullable|max:255',
-            'cogs_account_id' => 'required|exists:chart_of_accounts,id',
+            "name" => "required|min:2|max:255",
+            "category" => "nullable|max:255",
+            "description" => "nullable|max:255",
+            "cogs_account_id" => "required|exists:chart_of_accounts,id",
         ];
     }
 
@@ -34,26 +33,26 @@ new class extends Component {
         if ($this->isEditing) {
             $item = Item::find($this->editingItemId);
             $item->update([
-                'name' => $this->name,
-                'category' => $this->category,
-                'description' => $this->description,
-                'cogs_account_id' => $this->cogs_account_id,
+                "name" => $this->name,
+                "category" => $this->category,
+                "description" => $this->description,
+                "cogs_account_id" => $this->cogs_account_id,
             ]);
 
-            $this->dispatch('item-updated', 'Item updated successfully');
+            $this->dispatch("item-updated", "Item updated successfully");
         } else {
             Item::create([
-                'name' => $this->name,
-                'category' => $this->category,
-                'description' => $this->description,
-                'cogs_account_id' => $this->cogs_account_id,
+                "name" => $this->name,
+                "category" => $this->category,
+                "description" => $this->description,
+                "cogs_account_id" => $this->cogs_account_id,
             ]);
 
-            $this->dispatch('item-created', 'Item created successfully');
+            $this->dispatch("item-created", "Item created successfully");
         }
 
         $this->resetForm();
-        $this->modal('item-form')->close();
+        $this->modal("item-form")->close();
     }
 
     public function editItem($itemId)
@@ -63,87 +62,106 @@ new class extends Component {
 
         $item = Item::find($itemId);
         $this->name = $item->name;
-        $this->category = $item->category ?? '';
-        $this->description = $item->description ?? '';
-        $this->cogs_account_id = $item->cogs_account_id ?? '';
+        $this->category = $item->category ?? "";
+        $this->description = $item->description ?? "";
+        $this->cogs_account_id = $item->cogs_account_id ?? "";
 
-        $this->modal('item-form')->show();
+        $this->modal("item-form")->show();
     }
 
     public function deleteItem($itemId)
     {
         Item::destroy($itemId);
-        $this->dispatch('item-deleted', 'Item deleted successfully');
+        $this->dispatch("item-deleted", "Item deleted successfully");
     }
 
     public function resetForm()
     {
-        $this->reset(['name', 'category', 'description', 'cogs_account_id', 'editingItemId', 'isEditing']);
+        $this->reset(["name", "category", "description", "cogs_account_id", "editingItemId", "isEditing"]);
         $this->resetValidation();
     }
 
     public function cancelEdit()
     {
         $this->resetForm();
-        $this->modal('item-form')->close();
+        $this->modal("item-form")->close();
+    }
+
+    public function getCogsAccount()
+    {
+        // Get COGS parent account and its children
+        $cogsAccount = Account::where("name", "Cost of Goods Sold")->first();
+        $cogsChildAccounts = collect();
+
+        if ($cogsAccount) {
+            $cogsChildAccounts = Account::where("parent_id", $cogsAccount->id)->where("is_active", true)->orderBy("name")->get();
+        }
+
+        return $cogsChildAccounts;
+    }
+
+    public function getItemsWithCogs()
+    {
+        // Get all items with their COGS accounts, filtered by search
+        $allItems = Item::query()
+            ->with("cogsAccount")
+            ->when($this->searchQuery, function ($query, $search) {
+                $query->where(function ($subquery) use ($search) {
+                    $subquery
+                        ->where("name", "like", "%{$search}%")
+                        ->orWhere("category", "like", "%{$search}%")
+                        ->orWhere("description", "like", "%{$search}%");
+                });
+            })
+            ->orderBy("name")
+            ->get();
+
+        return $allItems;
+    }
+
+    public function groupAndCategorizeItems($allItems, $cogsChildAccounts)
+    {
+        // Group items by their COGS accounts and prepare categorized data
+
+        // Group items by COGS account
+        $groupedItems = $allItems->groupBy("cogs_account_id");
+
+        // Create structured data with accounts and their items
+        $categorizedData = $cogsChildAccounts->map(
+            fn($account) => [
+                "account" => $account,
+                "items" => $groupedItems->get($account->id, collect()),
+                "items_count" => $groupedItems->get($account->id, collect())->count(),
+            ],
+        );
+
+        // Add items without COGS accounts
+        $itemsWithoutAccount = $groupedItems->get(null, collect())->merge($groupedItems->get("", collect()));
+        if ($itemsWithoutAccount->isNotEmpty()) {
+            $categorizedData->push([
+                "account" => null,
+                "items" => $itemsWithoutAccount,
+                "items_count" => $itemsWithoutAccount->count(),
+            ]);
+        }
+
+        return $categorizedData;
     }
 
     public function with(): array
     {
-        // Get COGS parent account and its children
-        $cogsAccount = Account::where('name', 'Cost of Goods Sold')->first();
-        $cogsChildAccounts = collect();
-
-        if ($cogsAccount) {
-            $cogsChildAccounts = Account::where('parent_id', $cogsAccount->id)
-                ->where('is_active', true)
-                ->orderBy('name')
-                ->get();
-        }
-
-        // Get all items with their COGS accounts, filtered by search
-        $allItems = Item::query()
-            ->with('cogsAccount')
-            ->when($this->searchQuery, function ($query, $search) {
-                $query->where(function ($subquery) use ($search) {
-                    $subquery
-                        ->where('name', 'like', "%{$search}%")
-                        ->orWhere('category', 'like', "%{$search}%")
-                        ->orWhere('description', 'like', "%{$search}%");
-                });
-            })
-            ->orderBy('name')
-            ->get();
-
-        // Group items by COGS account
-        $groupedItems = $allItems->groupBy('cogs_account_id');
-
-        // Create structured data with accounts and their items
-        $categorizedData = $cogsChildAccounts->map(function ($account) use ($groupedItems) {
-            return [
-                'account' => $account,
-                'items' => $groupedItems->get($account->id, collect()),
-                'items_count' => $groupedItems->get($account->id, collect())->count()
-            ];
-        });
-
-        // Add items without COGS accounts
-        $itemsWithoutAccount = $groupedItems->get(null, collect())->merge($groupedItems->get('', collect()));
-        if ($itemsWithoutAccount->isNotEmpty()) {
-            $categorizedData->push([
-                'account' => null,
-                'items' => $itemsWithoutAccount,
-                'items_count' => $itemsWithoutAccount->count()
-            ]);
-        }
+        $cogsChildAccounts = $this->getCogsAccount();
+        $allItems = $this->getItemsWithCogs();
+        $categorizedData = $this->groupAndCategorizeItems($allItems, $cogsChildAccounts);
 
         return [
-            'categorizedData' => $categorizedData,
-            'cogsChildAccounts' => $cogsChildAccounts,
-            'totalItems' => $allItems->count(),
+            "categorizedData" => $categorizedData,
+            "cogsChildAccounts" => $cogsChildAccounts,
+            "totalItems" => $allItems->count(),
         ];
     }
-}; ?>
+};
+?>
 
 <div class="py-12">
     <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">

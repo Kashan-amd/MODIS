@@ -5,8 +5,6 @@ use App\Models\Account;
 use App\Models\Organization;
 use App\Models\Client;
 use App\Models\Vendor;
-use App\Models\ClientAccount;
-use App\Models\VendorAccount;
 use Livewire\WithPagination;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
@@ -15,15 +13,15 @@ new class extends Component {
     use WithPagination;
 
     // Form Properties
-    public $account_number = '';
-    public $name = '';
-    public $type = '';
-    public $description = '';
+    public $account_number = "";
+    public $name = "";
+    public $type = "";
+    public $description = "";
     public $is_active = true;
     public $current_balance = 0.0;
     public $opening_balance = 0.0;
-    public $balance_date = '';
-    public $organization_id = '';
+    public $balance_date = "";
+    public $organization_id = "";
     public $parent_id = null;
     public $level = 0;
     public $client_id = null; // For linking clients to receivable accounts
@@ -32,39 +30,41 @@ new class extends Component {
     // UI State
     public $editingAccountId = null;
     public $isEditing = false;
-    public $searchQuery = '';
-    public $formMode = 'parent'; // parent, child, grandchild
+    public $searchQuery = "";
+    public $formMode = "parent"; // parent, child, grandchild
     public $organizationFilter = 1; // Default to OSC organization (ID: 1)
 
     protected function rules(): array
     {
         // Check if this is a COGS child/grandchild account
         $isCOGSChild = false;
-        if ($this->formMode !== 'parent' && $this->parent_id) {
+        if ($this->formMode !== "parent" && $this->parent_id) {
             $parent = Account::find($this->parent_id);
             $isCOGSChild = $parent && ($parent->isCOGSAccount() || ($parent->parent && $parent->parent->isCOGSAccount()));
         }
 
         return [
-            'account_number' => [
-                'required',
-                'string',
-                'max:255',
-                Rule::unique('chart_of_accounts', 'account_number')->where(function ($query) {
-                    return $query->where('organization_id', $this->organization_id)->when($this->isEditing, fn($q) => $q->where('id', '!=', $this->editingAccountId));
-                }),
+            "account_number" => [
+                "required",
+                "string",
+                "max:255",
+                Rule::unique("chart_of_accounts", "account_number")->where(
+                    fn($query) => $query
+                        ->where("organization_id", $this->organization_id)
+                        ->when($this->isEditing, fn($q) => $q->where("id", "!=", $this->editingAccountId)),
+                ),
             ],
-            'name' => ['required', 'string', 'max:255'],
-            'type' => ['required', Rule::in(array_keys(Account::getTypes()))],
-            'description' => ['nullable', 'string'],
-            'is_active' => ['boolean'],
-            'opening_balance' => ['nullable', 'numeric'],
-            'balance_date' => ['nullable', 'date'],
-            'organization_id' => $isCOGSChild ? ['nullable'] : ['required', 'exists:organizations,id'],
-            'parent_id' => [Rule::when($this->formMode !== 'parent', ['required', 'exists:chart_of_accounts,id'], ['nullable'])],
-            'client_id' => [Rule::when($this->isReceivableAccount(), ['required', 'exists:clients,id'], ['nullable'])],
-            'vendor_id' => [Rule::when($this->isPayableAccount(), ['required', 'exists:vendors,id'], ['nullable'])],
-            'level' => ['required', 'integer', 'min:0', 'max:2'],
+            "name" => ["required", "string", "max:255"],
+            "type" => ["required", Rule::in(array_keys(Account::getTypes()))],
+            "description" => ["nullable", "string"],
+            "is_active" => ["boolean"],
+            "opening_balance" => ["nullable", "numeric"],
+            "balance_date" => ["nullable", "date"],
+            "organization_id" => $isCOGSChild ? ["nullable"] : ["required", "exists:organizations,id"],
+            "parent_id" => [Rule::when($this->formMode !== "parent", ["required", "exists:chart_of_accounts,id"], ["nullable"])],
+            "client_id" => [Rule::when($this->isReceivableAccount(), ["required", "exists:clients,id"], ["nullable"])],
+            "vendor_id" => [Rule::when($this->isPayableAccount(), ["required", "exists:vendors,id"], ["nullable"])],
+            "level" => ["required", "integer", "min:0", "max:2"],
         ];
     }
 
@@ -75,7 +75,7 @@ new class extends Component {
 
     private function initializeDefaults(): void
     {
-        $this->balance_date = now()->format('Y-m-d');
+        $this->balance_date = now()->format("Y-m-d");
         $this->loadDefaultOrganization();
     }
 
@@ -90,7 +90,7 @@ new class extends Component {
         try {
             $this->validate();
         } catch (\Exception $e) {
-            $this->dispatch('account-error', 'Validation failed: ' . $e->getMessage());
+            $this->dispatch("account-error", "Validation failed: " . $e->getMessage());
             return;
         }
 
@@ -98,10 +98,10 @@ new class extends Component {
             $data = $this->getAccountData();
 
             // Debug logging
-            \Log::info('Saving account', [
-                'formMode' => $this->formMode,
-                'data' => $data,
-                'isEditing' => $this->isEditing,
+            \Log::info("Saving account", [
+                "formMode" => $this->formMode,
+                "data" => $data,
+                "isEditing" => $this->isEditing,
             ]);
 
             if ($this->isEditing) {
@@ -109,14 +109,14 @@ new class extends Component {
                 $account->update($data);
             } else {
                 switch ($this->formMode) {
-                    case 'parent':
+                    case "parent":
                         $account = Account::createParentAccount($data);
                         break;
-                    case 'child':
+                    case "child":
                         $parent = Account::findOrFail($this->parent_id);
                         $account = $parent->createChildAccount($data);
                         break;
-                    case 'grandchild':
+                    case "grandchild":
                         $parent = Account::findOrFail($this->parent_id);
                         $account = $parent->createGrandchildAccount($data);
                         break;
@@ -128,7 +128,7 @@ new class extends Component {
 
                     // Create relationship in the pivot table
                     $client->accounts()->attach($account->account_number, [
-                        'organization_id' => $this->organization_id
+                        "organization_id" => $this->organization_id,
                     ]);
                 }
 
@@ -138,20 +138,23 @@ new class extends Component {
 
                     // Create relationship in the pivot table
                     $vendor->accounts()->attach($account->account_number, [
-                        'organization_id' => $this->organization_id
+                        "organization_id" => $this->organization_id,
                     ]);
                 }
             }
 
-            $this->dispatch($this->isEditing ? 'account-updated' : 'account-created', 'Account ' . ($this->isEditing ? 'updated' : 'created') . ' successfully!');
+            $this->dispatch(
+                $this->isEditing ? "account-updated" : "account-created",
+                "Account " . ($this->isEditing ? "updated" : "created") . " successfully!",
+            );
 
             $this->resetFormAndCloseModal();
         } catch (\Exception $e) {
-            \Log::error('Error saving account', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
+            \Log::error("Error saving account", [
+                "error" => $e->getMessage(),
+                "trace" => $e->getTraceAsString(),
             ]);
-            $this->dispatch('account-error', 'Error saving account: ' . $e->getMessage());
+            $this->dispatch("account-error", "Error saving account: " . $e->getMessage());
         }
     }
 
@@ -172,8 +175,7 @@ new class extends Component {
 
             // Check if the parent account is "Accounts Receivable" (account number typically starts with 12)
             // or if the account name contains "receivable"
-            return str_contains(strtolower($parent->name), 'receivable') ||
-                   str_starts_with($parent->account_number, '04');
+            return str_contains(strtolower($parent->name), "receivable") || str_starts_with($parent->account_number, "04");
         } catch (\Exception $e) {
             return false;
         }
@@ -184,7 +186,7 @@ new class extends Component {
      */
     private function getClients(): Collection
     {
-        return Client::orderBy('name')->get();
+        return Client::orderBy("name")->get();
     }
 
     /**
@@ -204,8 +206,7 @@ new class extends Component {
 
             // Check if the parent account is "Accounts Payable" (account number starts with 20)
             // or if the account name contains "payable"
-            return str_contains(strtolower($parent->name), 'payable') ||
-                   str_starts_with($parent->account_number, '20');
+            return str_contains(strtolower($parent->name), "payable") || str_starts_with($parent->account_number, "20");
         } catch (\Exception $e) {
             return false;
         }
@@ -216,29 +217,29 @@ new class extends Component {
      */
     private function getVendors(): Collection
     {
-        return Vendor::orderBy('name')->get();
+        return Vendor::orderBy("name")->get();
     }
 
     private function getAccountData(): array
     {
         $data = [
-            'account_number' => $this->account_number,
-            'name' => $this->name,
-            'type' => $this->type,
-            'description' => $this->description,
-            'is_active' => $this->is_active,
-            'current_balance' => $this->opening_balance ?: 0,
-            'opening_balance' => $this->opening_balance ?: 0,
-            'balance_date' => $this->balance_date,
-            'organization_id' => $this->organization_id, // Default to the set organization_id
-            'level' => $this->level,
+            "account_number" => $this->account_number,
+            "name" => $this->name,
+            "type" => $this->type,
+            "description" => $this->description,
+            "is_active" => $this->is_active,
+            "current_balance" => $this->opening_balance ?: 0,
+            "opening_balance" => $this->opening_balance ?: 0,
+            "balance_date" => $this->balance_date,
+            "organization_id" => $this->organization_id, // Default to the set organization_id
+            "level" => $this->level,
         ];
 
         // For COGS child and grandchild accounts, set organization_id to null to make them global
-        if ($this->formMode !== 'parent' && $this->parent_id) {
+        if ($this->formMode !== "parent" && $this->parent_id) {
             $parent = Account::find($this->parent_id);
             if ($parent && ($parent->isCOGSAccount() || ($parent->parent && $parent->parent->isCOGSAccount()))) {
-                $data['organization_id'] = null;
+                $data["organization_id"] = null;
             }
         }
 
@@ -254,16 +255,16 @@ new class extends Component {
 
             // Determine form mode based on level
             $this->formMode = match ($account->level) {
-                Account::LEVEL_PARENT => 'parent',
-                Account::LEVEL_CHILD => 'child',
-                Account::LEVEL_GRANDCHILD => 'grandchild',
-                default => 'parent',
+                Account::LEVEL_PARENT => "parent",
+                Account::LEVEL_CHILD => "child",
+                Account::LEVEL_GRANDCHILD => "grandchild",
+                default => "parent",
             };
 
             $this->loadAccountData($account);
-            $this->modal('account-form')->show();
+            $this->modal("account-form")->show();
         } catch (\Exception $e) {
-            $this->dispatch('account-error', 'Failed to load account: ' . $e->getMessage());
+            $this->dispatch("account-error", "Failed to load account: " . $e->getMessage());
         }
     }
 
@@ -273,34 +274,34 @@ new class extends Component {
             $account = Account::findOrFail($accountId);
 
             if ($account->transactionEntries()->exists()) {
-                throw new \RuntimeException('Cannot delete account with existing transactions.');
+                throw new \RuntimeException("Cannot delete account with existing transactions.");
             }
 
             if ($account->hasChildren()) {
-                throw new \RuntimeException('Cannot delete account with existing sub-accounts.');
+                throw new \RuntimeException("Cannot delete account with existing sub-accounts.");
             }
 
             $account->delete();
-            $this->dispatch('account-deleted', 'Account deleted successfully!');
+            $this->dispatch("account-deleted", "Account deleted successfully!");
         } catch (\Exception $e) {
-            $this->dispatch('account-error', $e->getMessage());
+            $this->dispatch("account-error", $e->getMessage());
         }
     }
 
     private function loadAccountData(Account $account): void
     {
         $this->fill([
-            'account_number' => $account->account_number,
-            'name' => $account->name,
-            'type' => $account->type,
-            'description' => $account->description,
-            'is_active' => $account->is_active,
-            'current_balance' => $account->current_balance,
-            'opening_balance' => $account->opening_balance,
-            'balance_date' => $account->balance_date?->format('Y-m-d') ?? now()->format('Y-m-d'),
-            'organization_id' => $account->organization_id,
-            'parent_id' => $account->parent_id,
-            'level' => $account->level,
+            "account_number" => $account->account_number,
+            "name" => $account->name,
+            "type" => $account->type,
+            "description" => $account->description,
+            "is_active" => $account->is_active,
+            "current_balance" => $account->current_balance,
+            "opening_balance" => $account->opening_balance,
+            "balance_date" => $account->balance_date?->format("Y-m-d") ?? now()->format("Y-m-d"),
+            "organization_id" => $account->organization_id,
+            "parent_id" => $account->parent_id,
+            "level" => $account->level,
         ]);
     }
 
@@ -314,19 +315,19 @@ new class extends Component {
                 $client = Client::findOrFail($value);
             } catch (\Exception $e) {
                 // Ignore error, user can manually enter name
-                $this->dispatch('account-error', 'Error loading client: ' . $e->getMessage());
+                $this->dispatch("account-error", "Error loading client: " . $e->getMessage());
             }
         }
     }
 
     public function updatedParentId($value): void
     {
-        if ($this->formMode !== 'parent' && $value) {
+        if ($this->formMode !== "parent" && $value) {
             try {
                 $parent = Account::findOrFail($value);
                 $this->account_number = $parent->getNextSubAccountNumber();
             } catch (\Exception $e) {
-                $this->dispatch('account-error', 'Error generating account number: ' . $e->getMessage());
+                $this->dispatch("account-error", "Error generating account number: " . $e->getMessage());
             }
         }
     }
@@ -339,31 +340,45 @@ new class extends Component {
     private function resetFormAndCloseModal(): void
     {
         $this->resetForm();
-        $this->modal('account-form')->close();
+        $this->modal("account-form")->close();
     }
 
     public function resetForm(): void
     {
-        $this->reset(['account_number', 'name', 'type', 'description', 'is_active', 'current_balance', 'opening_balance', 'editingAccountId', 'isEditing', 'parent_id', 'level', 'client_id', 'vendor_id']);
+        $this->reset([
+            "account_number",
+            "name",
+            "type",
+            "description",
+            "is_active",
+            "current_balance",
+            "opening_balance",
+            "editingAccountId",
+            "isEditing",
+            "parent_id",
+            "level",
+            "client_id",
+            "vendor_id",
+        ]);
 
-        $this->balance_date = now()->format('Y-m-d');
+        $this->balance_date = now()->format("Y-m-d");
         $this->organization_id = $this->organizationFilter; // Always use current filter
         $this->resetValidation();
     }
 
     public function prepareParentAccountForm(): void
     {
-        $this->resetFormAndOpenModal('parent', Account::LEVEL_PARENT);
+        $this->resetFormAndOpenModal("parent", Account::LEVEL_PARENT);
     }
 
     public function prepareChildAccountForm(): void
     {
-        $this->resetFormAndOpenModal('child', Account::LEVEL_CHILD);
+        $this->resetFormAndOpenModal("child", Account::LEVEL_CHILD);
     }
 
     public function prepareGrandchildAccountForm(): void
     {
-        $this->resetFormAndOpenModal('grandchild', Account::LEVEL_GRANDCHILD);
+        $this->resetFormAndOpenModal("grandchild", Account::LEVEL_GRANDCHILD);
     }
 
     private function resetFormAndOpenModal(string $mode, int $level): void
@@ -376,44 +391,42 @@ new class extends Component {
         // Always use the current organization filter for new accounts
         $this->organization_id = $this->organizationFilter;
 
-        $this->modal('account-form')->show();
+        $this->modal("account-form")->show();
     }
 
     private function getAccountsQuery(): \Illuminate\Database\Eloquent\Builder
     {
         // We'll handle the hierarchical ordering in the with() method instead
-        $query = Account::query()->with(['parent', 'children', 'organization']);
+        $query = Account::query()->with(["parent", "children", "organization"]);
 
         if ($this->searchQuery) {
             $query->where(function ($q) {
-                $q->where('name', 'like', "%{$this->searchQuery}%")
-                    ->orWhere('account_number', 'like', "%{$this->searchQuery}%")
+                $q->where("name", "like", "%{$this->searchQuery}%")
+                    ->orWhere("account_number", "like", "%{$this->searchQuery}%")
                     // ->orWhere('type', 'like', "%{$this->searchQuery}%")
-                    ->orWhere('description', 'like', "%{$this->searchQuery}%");
+                    ->orWhere("description", "like", "%{$this->searchQuery}%");
             });
         }
 
         // Filter by organization if set
         if ($this->organizationFilter) {
-            $query->where(function($q) {
-                $q->where('organization_id', $this->organizationFilter)
-                  // Also include parent accounts (level 0) that might be associated with any organization
-                  ->orWhere(function($subQuery) {
-                      $subQuery->where('level', 0)
-                               ->whereNull('organization_id');
-                  })
-                  // Include COGS accounts (account number 80) and all its children/grandchildren for all organizations
-                  ->orWhere(function($subQuery) {
-                      $subQuery->where('account_number', 'like', '80%')
-                               ->orWhereHas('parent', function($parentQuery) {
-                                   $parentQuery->where('account_number', 'like', '80%');
-                               });
-                  });
+            $query->where(function ($q) {
+                $q->where("organization_id", $this->organizationFilter)
+                    // Also include parent accounts (level 0) that might be associated with any organization
+                    ->orWhere(function ($subQuery) {
+                        $subQuery->where("level", 0)->whereNull("organization_id");
+                    })
+                    // Include COGS accounts (account number 80) and all its children/grandchildren for all organizations
+                    ->orWhere(function ($subQuery) {
+                        $subQuery->where("account_number", "like", "80%")->orWhereHas("parent", function ($parentQuery) {
+                            $parentQuery->where("account_number", "like", "80%");
+                        });
+                    });
             });
         }
 
         // Simple ordering by account number for now
-        return $query->orderBy('account_number');
+        return $query->orderBy("account_number");
     }
 
     private function getHierarchicalAccounts()
@@ -428,19 +441,19 @@ new class extends Component {
         $hierarchical = collect();
 
         // Get all parent accounts first
-        $parents = $allAccounts->where('level', 0)->sortBy('account_number');
+        $parents = $allAccounts->where("level", 0)->sortBy("account_number");
 
         foreach ($parents as $parent) {
             $hierarchical->push($parent);
 
             // Get children of this parent
-            $children = $allAccounts->where('parent_id', $parent->id)->sortBy('account_number');
+            $children = $allAccounts->where("parent_id", $parent->id)->sortBy("account_number");
 
             foreach ($children as $child) {
                 $hierarchical->push($child);
 
                 // Get grandchildren of this child
-                $grandchildren = $allAccounts->where('parent_id', $child->id)->sortBy('account_number');
+                $grandchildren = $allAccounts->where("parent_id", $child->id)->sortBy("account_number");
 
                 foreach ($grandchildren as $grandchild) {
                     $hierarchical->push($grandchild);
@@ -463,7 +476,7 @@ new class extends Component {
 
     private function getValidParents(): Collection
     {
-        if ($this->formMode === 'parent') {
+        if ($this->formMode === "parent") {
             return collect();
         }
 
@@ -473,12 +486,12 @@ new class extends Component {
     public function with(): array
     {
         return [
-            'accounts' => $this->getAccountsQuery()->paginate(100),
-            'organizations' => $this->getOrganizations(),
-            'accountTypes' => $this->getAccountTypes(),
-            'validParents' => $this->getValidParents(),
-            'clients' => $this->getClients(),
-            'vendors' => $this->getVendors(),
+            "accounts" => $this->getAccountsQuery()->paginate(100),
+            "organizations" => $this->getOrganizations(),
+            "accountTypes" => $this->getAccountTypes(),
+            "validParents" => $this->getValidParents(),
+            "clients" => $this->getClients(),
+            "vendors" => $this->getVendors(),
         ];
     }
 
@@ -493,7 +506,8 @@ new class extends Component {
             $this->organization_id = $this->organizationFilter;
         }
     }
-}; ?>
+};
+?>
 
 <div class="py-12">
     <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
@@ -616,9 +630,8 @@ new class extends Component {
                                         $currentOrg = $organizations->find($this->organizationFilter);
                                         $isCOGSChild = false;
                                         if ($this->formMode !== 'parent' && $this->parent_id) {
-                                        $parent = App\Models\Account::find($this->parent_id);
-                                        $isCOGSChild = $parent && ($parent->isCOGSAccount() || ($parent->parent &&
-                                        $parent->parent->isCOGSAccount()));
+                                            $parent = App\Models\Account::find($this->parent_id);
+                                            $isCOGSChild = $parent && ($parent->isCOGSAccount() || ($parent->parent && $parent->parent->isCOGSAccount()));
                                         }
                                         @endphp
                                         @if($isCOGSChild)

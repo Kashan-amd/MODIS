@@ -5,12 +5,11 @@ use App\Models\Account;
 use App\Models\Transaction;
 use App\Models\Organization;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Collection;
 
 new class extends Component {
     // Report Settings
-    public $organization_id = '';
-    public $report_type = 'trial-balance'; // Default to Trial Balance
+    public $organization_id = "";
+    public $report_type = "trial-balance"; // Default to Trial Balance
     public $start_date;
     public $end_date;
     public $report_data;
@@ -18,8 +17,8 @@ new class extends Component {
     public function mount()
     {
         // Set default dates (current month)
-        $this->start_date = Carbon::now()->startOfMonth()->format('Y-m-d');
-        $this->end_date = Carbon::now()->format('Y-m-d');
+        $this->start_date = Carbon::now()->startOfMonth()->format("Y-m-d");
+        $this->end_date = Carbon::now()->format("Y-m-d");
 
         // Set default organization if only one exists
         $organization = Organization::first();
@@ -32,11 +31,11 @@ new class extends Component {
     {
         $reportType = $this->report_type;
 
-        if ($reportType === 'income-statement') {
+        if ($reportType === "income-statement") {
             $this->report_data = $this->generateIncomeStatement();
-        } elseif ($reportType === 'balance-sheet') {
+        } elseif ($reportType === "balance-sheet") {
             $this->report_data = $this->generateBalanceSheet();
-        } elseif ($reportType === 'trial-balance') {
+        } elseif ($reportType === "trial-balance") {
             $this->report_data = $this->generateTrialBalance();
         }
     }
@@ -44,10 +43,10 @@ new class extends Component {
     protected function generateIncomeStatement()
     {
         // Get income accounts
-        $income = Account::where('type', 'income')->where('organization_id', $this->organization_id)->where('is_active', true)->get();
+        $income = Account::where("type", "income")->where("organization_id", $this->organization_id)->where("is_active", true)->get();
 
         // Get expense accounts
-        $expenses = Account::where('type', 'expense')->where('organization_id', $this->organization_id)->where('is_active', true)->get();
+        $expenses = Account::where("type", "expense")->where("organization_id", $this->organization_id)->where("is_active", true)->get();
 
         // Calculate income for the period
         $incomeItems = [];
@@ -56,9 +55,9 @@ new class extends Component {
         foreach ($income as $account) {
             $amount = $this->getAccountActivity($account->id);
             $incomeItems[] = [
-                'account_number' => $account->account_number,
-                'name' => $account->name,
-                'amount' => abs($amount), // Income is typically stored as negative (credit balance)
+                "account_number" => $account->account_number,
+                "name" => $account->name,
+                "amount" => abs($amount), // Income is typically stored as negative (credit balance)
             ];
             $totalIncome += abs($amount);
         }
@@ -70,9 +69,9 @@ new class extends Component {
         foreach ($expenses as $account) {
             $amount = $this->getAccountActivity($account->id);
             $expenseItems[] = [
-                'account_number' => $account->account_number,
-                'name' => $account->name,
-                'amount' => $amount,
+                "account_number" => $account->account_number,
+                "name" => $account->name,
+                "amount" => $amount,
             ];
             $totalExpenses += $amount;
         }
@@ -81,26 +80,26 @@ new class extends Component {
         $netIncome = $totalIncome - $totalExpenses;
 
         return [
-            'title' => 'Income Statement',
-            'period' => Carbon::parse($this->start_date)->format('M d, Y') . ' to ' . Carbon::parse($this->end_date)->format('M d, Y'),
-            'income' => $incomeItems,
-            'total_income' => $totalIncome,
-            'expenses' => $expenseItems,
-            'total_expenses' => $totalExpenses,
-            'net_income' => $netIncome,
+            "title" => "Income Statement",
+            "period" => Carbon::parse($this->start_date)->format("M d, Y") . " to " . Carbon::parse($this->end_date)->format("M d, Y"),
+            "income" => $incomeItems,
+            "total_income" => $totalIncome,
+            "expenses" => $expenseItems,
+            "total_expenses" => $totalExpenses,
+            "net_income" => $netIncome,
         ];
     }
 
     protected function generateBalanceSheet()
     {
         // Get asset accounts
-        $assets = Account::where('type', 'asset')->where('organization_id', $this->organization_id)->where('is_active', true)->get();
+        $assets = Account::where("type", "asset")->where("organization_id", $this->organization_id)->where("is_active", true)->get();
 
         // Get liability accounts
-        $liabilities = Account::where('type', 'liability')->where('organization_id', $this->organization_id)->where('is_active', true)->get();
+        $liabilities = Account::where("type", "liability")->where("organization_id", $this->organization_id)->where("is_active", true)->get();
 
         // Get equity accounts
-        $equity = Account::where('type', 'equity')->where('organization_id', $this->organization_id)->where('is_active', true)->get();
+        $equity = Account::where("type", "equity")->where("organization_id", $this->organization_id)->where("is_active", true)->get();
 
         // Calculate assets
         $assetItems = [];
@@ -109,9 +108,9 @@ new class extends Component {
         foreach ($assets as $account) {
             $balance = $account->current_balance;
             $assetItems[] = [
-                'account_number' => $account->account_number,
-                'name' => $account->name,
-                'balance' => $balance,
+                "account_number" => $account->account_number,
+                "name" => $account->name,
+                "balance" => $balance,
             ];
             $totalAssets += $balance;
         }
@@ -123,9 +122,9 @@ new class extends Component {
         foreach ($liabilities as $account) {
             $balance = $account->current_balance;
             $liabilityItems[] = [
-                'account_number' => $account->account_number,
-                'name' => $account->name,
-                'balance' => $balance,
+                "account_number" => $account->account_number,
+                "name" => $account->name,
+                "balance" => $balance,
             ];
             $totalLiabilities += $balance;
         }
@@ -137,9 +136,9 @@ new class extends Component {
         foreach ($equity as $account) {
             $balance = $account->current_balance;
             $equityItems[] = [
-                'account_number' => $account->account_number,
-                'name' => $account->name,
-                'balance' => $balance,
+                "account_number" => $account->account_number,
+                "name" => $account->name,
+                "balance" => $balance,
             ];
             $totalEquity += $balance;
         }
@@ -148,22 +147,22 @@ new class extends Component {
         $totalLiabilitiesAndEquity = $totalLiabilities + $totalEquity;
 
         return [
-            'title' => 'Balance Sheet',
-            'as_of' => Carbon::parse($this->end_date)->format('M d, Y'),
-            'assets' => $assetItems,
-            'total_assets' => $totalAssets,
-            'liabilities' => $liabilityItems,
-            'total_liabilities' => $totalLiabilities,
-            'equity' => $equityItems,
-            'total_equity' => $totalEquity,
-            'total_liabilities_and_equity' => $totalLiabilitiesAndEquity,
+            "title" => "Balance Sheet",
+            "as_of" => Carbon::parse($this->end_date)->format("M d, Y"),
+            "assets" => $assetItems,
+            "total_assets" => $totalAssets,
+            "liabilities" => $liabilityItems,
+            "total_liabilities" => $totalLiabilities,
+            "equity" => $equityItems,
+            "total_equity" => $totalEquity,
+            "total_liabilities_and_equity" => $totalLiabilitiesAndEquity,
         ];
     }
 
     protected function generateTrialBalance()
     {
         // Get all accounts
-        $accounts = Account::where('organization_id', $this->organization_id)->where('is_active', true)->orderBy('account_number')->get();
+        $accounts = Account::where("organization_id", $this->organization_id)->where("is_active", true)->orderBy("account_number")->get();
 
         $trialBalanceItems = [];
         $totalDebits = 0;
@@ -187,7 +186,7 @@ new class extends Component {
             $debit = 0;
             $credit = 0;
 
-            if (in_array($account->type, ['asset', 'expense'])) {
+            if (in_array($account->type, ["asset", "expense"])) {
                 // Assets and expenses typically have debit balances
                 if ($activity > 0) {
                     $debit = $activity;
@@ -204,13 +203,13 @@ new class extends Component {
             }
 
             $trialBalanceItems[] = [
-                'account_number' => $account->account_number,
-                'name' => $account->name,
-                'type' => $account->type,
-                'opening_balance' => $openingBalance,
-                'debit' => $debit,
-                'credit' => $credit,
-                'closing_balance' => $closingBalance,
+                "account_number" => $account->account_number,
+                "name" => $account->name,
+                "type" => $account->type,
+                "opening_balance" => $openingBalance,
+                "debit" => $debit,
+                "credit" => $credit,
+                "closing_balance" => $closingBalance,
             ];
 
             $totalDebits += $debit;
@@ -218,23 +217,23 @@ new class extends Component {
         }
 
         return [
-            'title' => 'Trial Balance',
-            'as_of' => Carbon::parse($this->end_date)->format('M d, Y'),
-            'accounts' => $trialBalanceItems,
-            'total_debits' => $totalDebits,
-            'total_credits' => $totalCredits,
-            'total_opening_balance' => $totalOpeningBalance,
-            'total_closing_balance' => $totalClosingBalance,
+            "title" => "Trial Balance",
+            "as_of" => Carbon::parse($this->end_date)->format("M d, Y"),
+            "accounts" => $trialBalanceItems,
+            "total_debits" => $totalDebits,
+            "total_credits" => $totalCredits,
+            "total_opening_balance" => $totalOpeningBalance,
+            "total_closing_balance" => $totalClosingBalance,
         ];
     }
 
     protected function getAccountActivity($accountId)
     {
         // Get the sum of all transactions for the account within the date range
-        return Transaction::join('transaction_entries', 'transactions.id', '=', 'transaction_entries.transaction_id')
-            ->where('transaction_entries.account_id', $accountId)
-            ->whereBetween('transactions.date', [$this->start_date, $this->end_date])
-            ->sum('transaction_entries.amount');
+        return Transaction::join("transaction_entries", "transactions.id", "=", "transaction_entries.transaction_id")
+            ->where("transaction_entries.account_id", $accountId)
+            ->whereBetween("transactions.date", [$this->start_date, $this->end_date])
+            ->sum("transaction_entries.amount");
     }
 
     protected function getAccountBalance($accountId, $date)
@@ -249,7 +248,10 @@ new class extends Component {
         $openingBalance = $account->opening_balance;
 
         // Add all transactions up to the specified date
-        $transactions = Transaction::join('transaction_entries', 'transactions.id', '=', 'transaction_entries.transaction_id')->where('transaction_entries.account_id', $accountId)->where('transactions.date', '<=', $date)->sum('transaction_entries.amount');
+        $transactions = Transaction::join("transaction_entries", "transactions.id", "=", "transaction_entries.transaction_id")
+            ->where("transaction_entries.account_id", $accountId)
+            ->where("transactions.date", "<=", $date)
+            ->sum("transaction_entries.amount");
 
         return $openingBalance + $transactions;
     }
@@ -258,7 +260,7 @@ new class extends Component {
     public function formatAmount($amount, $decimals = 2)
     {
         if ($amount < 0) {
-            return '(' . number_format(abs($amount), $decimals) . ')';
+            return "(" . number_format(abs($amount), $decimals) . ")";
         }
         return number_format($amount, $decimals);
     }
@@ -266,15 +268,16 @@ new class extends Component {
     public function with(): array
     {
         return [
-            'organizations' => Organization::orderBy('name')->get(),
-            'reportTypes' => [
-                'income-statement' => 'Income Statement',
-                'balance-sheet' => 'Balance Sheet',
-                'trial-balance' => 'Trial Balance',
+            "organizations" => Organization::orderBy("name")->get(),
+            "reportTypes" => [
+                "income-statement" => "Income Statement",
+                "balance-sheet" => "Balance Sheet",
+                "trial-balance" => "Trial Balance",
             ],
         ];
     }
-}; ?>
+};
+?>
 
 <div class="py-12">
     <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
