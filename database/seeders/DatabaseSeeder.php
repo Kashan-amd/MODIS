@@ -16,16 +16,12 @@ class DatabaseSeeder extends Seeder
         // User::factory(10)->create();
 
         User::factory()->create([
-            'name' => 'Admin',
-            'email' => 'admin@example.com',
-            'password' => bcrypt('password'), // Ensure to use a secure password
+            "name" => "Admin",
+            "email" => "admin@example.com",
+            "password" => bcrypt("password"), // Ensure to use a secure password
         ]);
 
         // Seed organizations, accounting data, and items
-        $this->call([
-            OrganizationSeeder::class,
-            ItemsSeeder::class,
-            ChartOfAccountsSeeder::class,
-        ]);
+        $this->call([OrganizationSeeder::class, ItemsSeeder::class, ChartOfAccountsSeeder::class]);
     }
 }
